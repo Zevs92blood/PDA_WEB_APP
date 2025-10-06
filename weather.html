@@ -4,7 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Погода для iPAQ (v1.2)</title>
+    <title>Погода для iPAQ (v1.3)</title>
     <style>
         body { font-family: sans-serif; text-align: center; background-color: #E0E0FF; color: #333; }
         #result { margin-top: 20px; padding: 10px; border: 1px solid #AAA; background-color: #FFF; min-height: 50px; text-align: left; }
@@ -13,6 +13,18 @@
         h1 { margin-bottom: 5px; }
         .version { font-size: 10px; color: #666; margin-top: 20px; }
         pre { white-space: pre-wrap; word-wrap: break-word; font-size: 10px; }
+        /* Новый стиль для кнопки-ссылки */
+        .api-link {
+            display: inline-block;
+            background-color: #4CAF50; /* Зеленый цвет */
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            margin-top: 15px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -24,11 +36,11 @@
         <option value="53.20,50.15">Самара (Обл. центр)</option>
     </select>
     
-    <button onclick="fetchWeather()">Запросить Погоду</button>
+    <a href="#" id="api-button" class="api-link" onclick="getApiUrl(event)">ПРОВЕРИТЬ API</a>
     
-    <div id="result">Ожидание данных...</div>
+    <div id="result">Нажмите "ПРОВЕРИТЬ API", чтобы увидеть, может ли браузер получить JSON.</div>
     
-    <div class="version">Версия: 1.2 (через публичный прокси)</div>
+    <div class="version">Версия: 1.3 (Тест прямой ссылки)</div>
 
     <script>
         const LOCATIONS = {
@@ -36,71 +48,21 @@
             '53.20,50.15': 'Самаре'
         };
 
-        function fetchWeather() {
-            const selectElement = document.getElementById('city-select');
-            const resultDiv = document.getElementById('result');
+        // Эта функция генерирует URL и перенаправляет браузер.
+        function getApiUrl(event) {
+            // event.preventDefault(); // Закомментируем, чтобы разрешить переход
             
+            const selectElement = document.getElementById('city-select');
             const selectedValue = selectElement.value;
             const lat = selectedValue.split(',')[0];
             const lon = selectedValue.split(',')[1];
-            const cityName = LOCATIONS[selectedValue];
             
-            resultDiv.innerHTML = 'Загрузка данных для ' + cityName + '...';
-
-            // Использование публичного прокси для обхода SSL/CORS
-            const API_TARGET_URL = 'http://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m&timezone=Europe%2FMoscow';
-            const PROXY_URL = 'http://cors-anywhere.herokuapp.com/' + API_TARGET_URL; // Новый адрес запроса
-
-            const xhr = new XMLHttpRequest();
+            // Запрос по HTTP для обхода проблемы с SSL
+            const API_URL = 'http://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m&timezone=Europe%2FMoscow';
             
-            if (!xhr) {
-                resultDiv.innerHTML = 'Ошибка: Ваш браузер не поддерживает XMLHttpRequest.';
-                return;
-            }
-
-            xhr.open('GET', PROXY_URL, true);
-            
-            xhr.onload = function() {
-                let debugInfo = 'Статус: ' + xhr.status + ' ' + (xhr.statusText || '') + '<br>';
-                
-                if (xhr.status === 200) {
-                    try {
-                        const data = JSON.parse(xhr.responseText);
-                        const temp = data.current.temperature_2m;
-                        
-                        // Успешный вывод
-                        resultDiv.innerHTML = 
-                            '<h2>' + selectElement.options[selectElement.selectedIndex].text + '</h2>' +
-                            debugInfo +
-                            '<p>Температура:</p>' +
-                            '<strong>' + temp + ' °C</strong>' +
-                            '<p>Обновлено: ' + new Date().toLocaleTimeString() + '</p>';
-
-                    } catch (e) {
-                        // Ошибка парсинга JSON
-                        resultDiv.innerHTML = 
-                            debugInfo +
-                            '<p><strong>Ошибка парсинга JSON.</strong></p>' +
-                            '<p>Ответ сервера:</p>' +
-                            '<pre>' + xhr.responseText.substring(0, 100) + '...</pre>';
-                    }
-                } else {
-                    // Ошибка HTTP (404, 500 и т.д.)
-                    resultDiv.innerHTML = 
-                        '<h2>Ошибка HTTP!</h2>' +
-                        debugInfo +
-                        '<p><strong>Не удалось получить данные.</strong></p>' +
-                        '<p>Ответ сервера (начало):</p>' +
-                        '<pre>' + xhr.responseText.substring(0, 100) + '...</pre>';
-                }
-            };
-            
-            xhr.onerror = function() {
-                // Если сработает эта функция - проблема в самом сетевом стеке
-                resultDiv.innerHTML = '<h2>Сетевая ошибка XHR!</h2><p>Полная блокировка запроса браузером/Оперой. Проверьте соединение или прокси.</p><p>Статус XHR: 0</p>';
-            };
-
-            xhr.send();
+            // Устанавливаем ссылку на кнопке и переходим
+            document.getElementById('api-button').href = API_URL;
+            return true; // Разрешаем переход
         }
     </script>
 </body>

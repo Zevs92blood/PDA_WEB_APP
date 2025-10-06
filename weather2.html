@@ -4,7 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Погода для iPAQ (v2.2)</title>
+    <title>Погода для iPAQ (v2.4)</title>
     <style>
         body { font-family: sans-serif; text-align: center; color: #333; transition: background-color 1.5s; }
         #result { margin-top: 20px; padding: 10px; border: 1px solid #AAA; background-color: rgba(255, 255, 255, 0.8); min-height: 50px; text-align: left; }
@@ -14,6 +14,9 @@
         select { padding: 8px; font-size: 14px; margin-bottom: 15px; border: 1px solid #777; }
         h1 { margin-bottom: 5px; }
         .version { font-size: 10px; color: #666; margin-top: 20px; }
+        #aqi-result { margin-top: 15px; font-size: 14px; color: #666; }
+        .controls { margin-bottom: 15px; }
+        .controls label { font-size: 14px; }
     </style>
 </head>
 <body>
@@ -25,11 +28,18 @@
         <option value="53.20,50.15">Самара (Обл. центр)</option>
     </select>
     
-    <button onclick="fetchWeather()">Запросить Прогноз (v2.2)</button>
+    <div class="controls">
+        <label>
+            <input type="checkbox" id="detail-checkbox"> Подробно
+        </label>
+    </div>
+    
+    <button onclick="fetchWeather()">Запросить Прогноз (v2.4)</button>
     
     <div id="result">Ожидание данных...</div>
+    <div id="aqi-result"></div>
     
-    <div class="version">Версия: 2.2 (Дискретный цвет, 4 времени суток)</div>
+    <div class="version">Версия: 2.4 (Чекбокс, Давление, Точка Росы)</div>
 
     <script>
         var LOCATIONS = {
@@ -37,34 +47,75 @@
             '53.20,50.15': 'Самаре'
         };
 
-        // --- ФУНКЦИЯ ДЛЯ ДИСКРЕТНОГО ФОНА ---
+        // --- ФУНКЦИЯ ДЛЯ ДИСКРЕТНОГО ФОНА (Без изменений) ---
         function updateBackground(temp) {
             var color;
-            
-            // Цветовые зоны
-            if (temp >= 35) {
-                color = '#FF0000'; // Красный (35+)
-            } else if (temp >= 25) {
-                color = '#FFA500'; // Оранжевый (25-34)
-            } else if (temp >= 18) {
-                color = '#FFFF00'; // Желтый (18-24)
-            } else if (temp >= 10) {
-                color = '#008000'; // Зеленый (10-17)
-            } else if (temp >= -5) {
-                color = '#ADD8E6'; // Голубой (-5 - 9)
-            } else if (temp >= -20) {
-                color = '#0000FF'; // Синий (-20 - -6)
-            } else {
-                color = '#EE82EE'; // Фиолетовый (-21 и ниже)
-            }
-            
+            if (temp >= 35) color = '#FF0000';
+            else if (temp >= 25) color = '#FFA500';
+            else if (temp >= 18) color = '#FFFF00';
+            else if (temp >= 10) color = '#008000';
+            else if (temp >= -5) color = '#ADD8E6';
+            else if (temp >= -20) color = '#0000FF';
+            else color = '#EE82EE';
             document.body.style.backgroundColor = color;
         }
         
-        // --- ОСНОВНАЯ ФУНКЦИЯ ЗАПРОСА ДАННЫХ ---
+        // --- ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ КАЧЕСТВА ВОЗДУХА (ОБНОВЛЕНА ДЛЯ СИНХРОННОСТИ) ---
+        function fetchAirQuality(LAT, LON) {
+            var aqiDiv = document.getElementById('aqi-result');
+            var isDetailed = document.getElementById('detail-checkbox').checked;
+            
+            // Если не нужно подробно, AQI не загружаем
+            if (!isDetailed) {
+                aqiDiv.innerHTML = '';
+                return;
+            }
+            
+            aqiDiv.innerHTML = 'Загрузка данных о качестве воздуха...';
+
+            var AQI_URL = 'https://air-quality.open-meteo.com/v1/air-quality?latitude=' + LAT + '&longitude=' + LON + '&current=european_aqi,us_aqi&timezone=UTC%2B04%3A00';
+
+            var xhr_aqi = new XMLHttpRequest();
+            
+            xhr_aqi.open('GET', AQI_URL, true);
+            
+            xhr_aqi.onreadystatechange = function() {
+                if (xhr_aqi.readyState === 4) {
+                    if (xhr_aqi.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr_aqi.responseText);
+                            var eu_aqi = data.current.european_aqi;
+                            var us_aqi = data.current.us_aqi;
+                            
+                            var aqi_text = '';
+                            if (eu_aqi < 20) aqi_text = 'Хорошее';
+                            else if (eu_aqi < 40) aqi_text = 'Умеренное';
+                            else if (eu_aqi < 60) aqi_text = 'Среднее';
+                            else aqi_text = 'Пониженное';
+
+                            aqiDiv.innerHTML = 
+                                '<h3>Качество воздуха (AQI)</h3>' +
+                                '<p>Европейский индекс: <strong>' + eu_aqi + '</strong> (' + aqi_text + ')</p>' +
+                                '<p>Американский индекс: <strong>' + us_aqi + '</strong></p>';
+
+                        } catch (e) {
+                            aqiDiv.innerHTML = 'Не удалось получить данные AQI.';
+                        }
+                    } else {
+                        aqiDiv.innerHTML = 'Ошибка загрузки AQI. Статус: ' + xhr_aqi.status;
+                    }
+                }
+            };
+            
+            xhr_aqi.send();
+        }
+
+
+        // --- ОСНОВНАЯ ФУНКЦИЯ ЗАПРОСА ПОГОДЫ (ОБНОВЛЕННАЯ) ---
         function fetchWeather() {
             var selectElement = document.getElementById('city-select');
             var resultDiv = document.getElementById('result');
+            var isDetailed = document.getElementById('detail-checkbox').checked; // Читаем состояние чекбокса
             
             var selectedValue = selectElement.value;
             var coords = selectedValue.split(',');
@@ -74,8 +125,11 @@
             
             resultDiv.innerHTML = 'Загрузка данных для ' + cityName + '...';
 
-            // Запрашиваем 48 часов для получения данных на завтра
-            var API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&current=temperature_2m,relative_humidity_2m,wind_speed_10m&hourly=temperature_2m,precipitation_probability,wind_speed_10m&forecast_days=2&timezone=UTC%2B04%3A00';
+            // НОВЫЕ ПАРАМЕТРЫ: surface_pressure, dew_point_2m
+            var CURRENT_PARAMS = 'temperature_2m,relative_humidity_2m,wind_speed_10m,uv_index,surface_pressure,dew_point_2m';
+            var HOURLY_PARAMS = 'temperature_2m,precipitation_probability,wind_speed_10m,uv_index';
+
+            var API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&current=' + CURRENT_PARAMS + '&hourly=' + HOURLY_PARAMS + '&forecast_days=2&timezone=UTC%2B04%3A00';
 
             var xhr = new XMLHttpRequest();
             
@@ -97,85 +151,99 @@
                             var temp = current.temperature_2m;
                             var humidity = current.relative_humidity_2m;
                             var wind = current.wind_speed_10m;
+                            var uv_index = current.uv_index;
+                            var pressure = Math.round(current.surface_pressure * 0.75006); // гПа в мм рт. ст.
+                            var dew_point = current.dew_point_2m;
                             
-                            // Обновляем фон
                             updateBackground(temp);
 
-                            // 2. Формирование прогноза (4 ключевых времени: 6, 12, 18, 24/00)
-                            var hourly = data.hourly;
-                            var now = new Date();
-                            var currentHour = now.getHours();
-
-                            var keyHours = [6, 12, 18, 0]; // Утро, День, Вечер, Ночь
-                            var todayHTML = '<h4>Прогноз на сегодня:</h4>';
-                            var tomorrowHTML = '<h4>Прогноз на завтра:</h4>';
-                            var foundToday = 0;
-                            var foundTomorrow = 0;
-                            
-                            // 2.1. Поиск данных
-                            var i;
-                            for (i = 0; i < hourly.time.length; i++) {
-                                var hourTime = new Date(hourly.time[i]);
-                                var h = hourTime.getHours();
-                                
-                                // Отсекаем прошедшие часы в текущем дне
-                                if (hourTime.getDate() === now.getDate() && h < currentHour) continue;
-                                
-                                // Проверяем, является ли час ключевым
-                                var isKeyHour = false;
-                                var j;
-                                for(j = 0; j < keyHours.length; j++){
-                                    if(h === keyHours[j]) {
-                                        isKeyHour = true;
-                                        break;
-                                    }
-                                }
-                                
-                                if (isKeyHour) {
-                                    var h_temp = Math.round(hourly.temperature_2m[i]);
-                                    var h_pop = hourly.precipitation_probability[i];
-                                    var h_wind = Math.round(hourly.wind_speed_10m[i]);
-
-                                    var dayLabel = '';
-                                    if (h === 6) dayLabel = 'Утро (6:00)';
-                                    else if (h === 12) dayLabel = 'День (12:00)';
-                                    else if (h === 18) dayLabel = 'Вечер (18:00)';
-                                    else if (h === 0) dayLabel = 'Ночь (0:00)';
-                                    
-                                    var forecastItem = 
-                                        '<div class="hourly-item">' +
-                                        '<strong>' + dayLabel + '</strong>: ' +
-                                        h_temp + '°C, ' +
-                                        h_pop + '% осад., ' +
-                                        h_wind + ' м/с' +
-                                        '</div>';
-
-                                    if (hourTime.getDate() === now.getDate()) {
-                                        todayHTML += forecastItem;
-                                        foundToday++;
-                                    } else if (hourTime.getDate() === (now.getDate() + 1) || h === 0) { // +1 день
-                                        tomorrowHTML += forecastItem;
-                                        foundTomorrow++;
-                                    }
-                                }
-                                
-                                // Ограничение: если нашли 4 точки на завтра, можно не искать дальше
-                                if (foundTomorrow >= 4) break;
-                            }
-                            
-                            // 3. Вывод результата
-                            resultDiv.innerHTML = 
+                            // 2. Формирование основного блока
+                            var mainHTML = 
                                 '<h2>' + selectElement.options[selectElement.selectedIndex].text + '</h2>' +
                                 '<h3>Текущая погода:</h3>' +
                                 '<p>Температура: <strong>' + temp + ' °C</strong></p>' +
                                 '<p>Влажность: <strong>' + humidity + ' %</strong></p>' +
                                 '<p>Ветер: <strong>' + wind + ' м/с</strong></p>' +
-                                '<p>Обновлено: ' + new Date().toLocaleTimeString() + '</p>' +
-                                '<div class="forecast-block">' + todayHTML + '</div>' +
-                                '<div class="forecast-block">' + tomorrowHTML + '</div>';
+                                '<p>Обновлено: ' + new Date().toLocaleTimeString() + '</p>';
+
+                            // 3. Формирование подробного блока
+                            var detailedHTML = '';
+                            if (isDetailed) {
+                                detailedHTML += '<div class="forecast-block">';
+                                detailedHTML += '<h4>Детали для самочувствия:</h4>';
+                                detailedHTML += '<p>Давление: <strong>' + pressure + ' мм рт. ст.</strong></p>';
+                                detailedHTML += '<p>Точка Росы: <strong>' + dew_point + ' °C</strong></p>';
+                                detailedHTML += '<p>УФ-индекс: <strong>' + uv_index + '</strong></p>';
+                                detailedHTML += '</div>';
+
+                                // Прогноз по времени суток
+                                var hourly = data.hourly;
+                                var now = new Date();
+                                var currentHour = now.getHours();
+
+                                var keyHours = [6, 12, 18, 0];
+                                var todayHTML = '<h4>Прогноз на сегодня:</h4>';
+                                var tomorrowHTML = '<h4>Прогноз на завтра:</h4>';
+                                var foundTomorrow = 0;
+                                
+                                var i;
+                                for (i = 0; i < hourly.time.length; i++) {
+                                    var hourTime = new Date(hourly.time[i]);
+                                    var h = hourTime.getHours();
+                                    
+                                    if (hourTime.getDate() === now.getDate() && h < currentHour) continue;
+                                    
+                                    var isKeyHour = false;
+                                    var j;
+                                    for(j = 0; j < keyHours.length; j++){
+                                        if(h === keyHours[j]) {
+                                            isKeyHour = true;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if (isKeyHour) {
+                                        var h_temp = Math.round(hourly.temperature_2m[i]);
+                                        var h_pop = hourly.precipitation_probability[i];
+                                        var h_wind = Math.round(hourly.wind_speed_10m[i]);
+                                        var h_uv = hourly.uv_index[i];
+
+                                        var dayLabel = '';
+                                        if (h === 6) dayLabel = 'Утро (6:00)';
+                                        else if (h === 12) dayLabel = 'День (12:00)';
+                                        else if (h === 18) dayLabel = 'Вечер (18:00)';
+                                        else if (h === 0) dayLabel = 'Ночь (0:00)';
+                                        
+                                        var forecastItem = 
+                                            '<div class="hourly-item">' +
+                                            '<strong>' + dayLabel + '</strong>: ' +
+                                            h_temp + '°C, ' +
+                                            h_pop + '% осад., ' +
+                                            h_wind + ' м/с, УФ: ' + h_uv +
+                                            '</div>';
+
+                                        if (hourTime.getDate() === now.getDate()) {
+                                            todayHTML += forecastItem;
+                                        } else if (hourTime.getDate() === (now.getDate() + 1)) {
+                                            tomorrowHTML += forecastItem;
+                                            foundTomorrow++;
+                                        }
+                                    }
+                                    if (foundTomorrow >= 4) break;
+                                }
+
+                                detailedHTML += '<div class="forecast-block">' + todayHTML + '</div>';
+                                detailedHTML += '<div class="forecast-block">' + tomorrowHTML + '</div>';
+                            }
+                            
+                            // 4. Выводим результат
+                            resultDiv.innerHTML = mainHTML + detailedHTML;
+
+                            // 5. Запускаем запрос качества воздуха (только если стоит чекбокс)
+                            fetchAirQuality(LAT, LON);
 
                         } catch (e) {
-                            resultDiv.innerHTML = '<h2>Ошибка парсинга (v2.2)!</h2><p>Не могу обработать ответ сервера.</p><pre>' + e.toString() + '</pre>';
+                            resultDiv.innerHTML = '<h2>Ошибка парсинга (v2.4)!</h2><p>Не могу обработать ответ сервера.</p><pre>' + e.toString() + '</pre>';
                         }
                     } else {
                         resultDiv.innerHTML = '<h2>Ошибка HTTP!</h2><p>Статус: ' + xhr.status + ' ' + (xhr.statusText || '') + '</p>';

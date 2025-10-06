@@ -4,17 +4,14 @@
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Погода для iPAQ (v1.4)</title>
+    <title>Погода для iPAQ (v1.5)</title>
     <style>
-        /* CSS без изменений */
         body { font-family: sans-serif; text-align: center; background-color: #E0E0FF; color: #333; }
         #result { margin-top: 20px; padding: 10px; border: 1px solid #AAA; background-color: #FFF; min-height: 50px; text-align: left; }
         button { padding: 10px 20px; font-size: 16px; margin-top: 15px; }
         select { padding: 8px; font-size: 14px; margin-bottom: 15px; border: 1px solid #777; }
         h1 { margin-bottom: 5px; }
         .version { font-size: 10px; color: #666; margin-top: 20px; }
-        /* Скрываем Iframe и форму */
-        #data-form, #data-frame { display: none; }
     </style>
 </head>
 <body>
@@ -30,86 +27,63 @@
     
     <div id="result">Ожидание данных...</div>
     
-    <div class="version">Версия: 1.4.1 (Загрузка через Iframe)</div>
-
-    <iframe id="data-frame" name="data-frame"></iframe>
-
-    <form id="data-form" target="data-frame" method="GET" action="">
-        <input type="hidden" name="latitude" id="lat-input">
-        <input type="hidden" name="longitude" id="lon-input">
-        <input type="hidden" name="current" value="temperature_2m">
-        <input type="hidden" name="timezone" value="Europe/Moscow">
-    </form>
-
+    <div class="version">Версия: 1.5 (JSONP-костыль)</div>
 
     <script>
         const LOCATIONS = {
             '53.05,50.85': 'Покровке',
             '53.20,50.15': 'Самаре'
         };
+        
+        // Глобальная функция, которую вызовет JSONP-ответ Open-Meteo
+        window.handleWeather = function(data) {
+            const selectElement = document.getElementById('city-select');
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const temp = data.current.temperature_2m;
+                
+                // Успешный вывод
+                resultDiv.innerHTML = 
+                    '<h2>' + selectElement.options[selectElement.selectedIndex].text + '</h2>' +
+                    '<p>Температура:</p>' +
+                    '<strong>' + temp + ' °C</strong>' +
+                    '<p>Обновлено: ' + new Date().toLocaleTimeString() + '</p>';
+                    
+            } catch (e) {
+                resultDiv.innerHTML = '<h2>Ошибка парсинга JSONP!</h2><p>Неверный формат данных.</p>';
+            }
+        };
 
         function fetchWeather() {
             const selectElement = document.getElementById('city-select');
             const resultDiv = document.getElementById('result');
-            const dataFrame = document.getElementById('data-frame');
-            const dataForm = document.getElementById('data-form');
             
             const selectedValue = selectElement.value;
-            const [lat, lon] = selectedValue.split(',');
+            const lat = selectedValue.split(',')[0];
+            const lon = selectedValue.split(',')[1];
             const cityName = LOCATIONS[selectedValue];
             
             resultDiv.innerHTML = 'Загрузка данных для ' + cityName + '...';
-
-            // 1. Устанавливаем целевой адрес API (HTTP)
-            dataForm.action = 'https://api.open-meteo.com/v1/forecast';
             
-            // 2. Устанавливаем параметры формы
-            document.getElementById('lat-input').value = lat;
-            document.getElementById('lon-input').value = lon;
+            // 1. Формируем URL с параметром callback
+            const API_URL = 'http://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m&timezone=Europe%2FMoscow&callback=handleWeather';
+
+            // 2. Создаем тег <script>
+            const script = document.createElement('script');
+            script.src = API_URL;
             
-            // 3. Добавляем слушатель события загрузки Iframe
-            dataFrame.onload = function() {
-                // Пытаемся получить содержимое Iframe
-                let content;
-                try {
-                    // Это работает не во всех браузерах, но это последний шанс
-                    content = dataFrame.contentWindow.document.body.innerText;
-                    
-                    if (!content) {
-                        content = dataFrame.contentWindow.document.body.innerHTML;
-                    }
-                    
-                    if (!content) {
-                        resultDiv.innerHTML = 'Ошибка: Содержимое Iframe пустое.';
-                        return;
-                    }
+            // 3. Вставляем тег в заголовок страницы (head)
+            document.getElementsByTagName('head')[0].appendChild(script);
 
-                    // Очищаем потенциальные HTML-теги, которые Opera могла добавить
-                    content = content.replace(/<\/?pre>/g, '').trim(); 
-                    
-                    const data = JSON.parse(content);
-                    const temp = data.current.temperature_2m;
-                    
-                    // Успешный вывод
-                    resultDiv.innerHTML = 
-                        '<h2>' + selectElement.options[selectElement.selectedIndex].text + '</h2>' +
-                        '<p>Температура:</p>' +
-                        '<strong>' + temp + ' °C</strong>' +
-                        '<p>Обновлено: ' + new Date().toLocaleTimeString() + '</p>';
-
-                } catch (e) {
-                    // Ошибка парсинга или чтения Iframe
-                    resultDiv.innerHTML = 
-                        '<h2>Ошибка обработки данных!</h2>' +
-                        '<p>Браузер не смог прочитать/распарсить ответ сервера.</p>' +
-                        '<pre>Начало ответа: ' + (content ? content.substring(0, 50) + '...' : 'НЕТ ДАННЫХ') + '</pre>';
+            // 4. Устанавливаем таймер для случая ошибки
+            setTimeout(function() {
+                if (resultDiv.innerHTML.indexOf('Температура') === -1) {
+                    resultDiv.innerHTML = '<h2>Ошибка JSONP!</h2><p>Сервер не ответил или не поддерживает JSONP.</p>';
                 }
-            };
-            
-            // 4. Отправляем форму! Opera Mini загрузит данные в Iframe.
-            dataForm.submit();
+            }, 8000); // Ждем 8 секунд
+
         }
     </script>
 </body>
 </html>
-

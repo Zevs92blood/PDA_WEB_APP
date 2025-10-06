@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Погода для iPAQ (v2)</title>
+    <style>
+        /* Очень простой CSS для старых браузеров */
+        body { font-family: sans-serif; text-align: center; background-color: #E0E0FF; color: #333; }
+        #result { margin-top: 20px; padding: 10px; border: 1px solid #AAA; background-color: #FFF; min-height: 50px; }
+        button { padding: 10px 20px; font-size: 16px; margin-top: 15px; }
+        select { padding: 8px; font-size: 14px; margin-bottom: 15px; border: 1px solid #777; }
+        h1 { margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>Выбор города:</h1>
+    
+    <select id="city-select">
+        <option value="53.05,50.85">Покровка (Н-р-н)</option>
+        <option value="53.20,50.15">Самара (Обл. центр)</option>
+    </select>
+    
+    <button onclick="fetchWeather()">Запросить Погоду</button>
+    
+    <div id="result">Ожидание данных...</div>
+
+    <script>
+        // Код JavaScript не использует кириллицу в переменных, поэтому остаётся рабочим.
+        const LOCATIONS = {
+            '53.05,50.85': 'Покровке',
+            '53.20,50.15': 'Самаре'
+        };
+
+        function fetchWeather() {
+            const selectElement = document.getElementById('city-select');
+            const resultDiv = document.getElementById('result');
+            
+            const selectedValue = selectElement.value;
+            const [LAT, LON] = selectedValue.split(',');
+            const cityName = LOCATIONS[selectedValue];
+            
+            resultDiv.innerHTML = 'Загрузка данных для ' + cityName + '...';
+
+            const API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&current=temperature_2m&timezone=Europe%2FMoscow';
+
+            const xhr = new XMLHttpRequest();
+            
+            if (!xhr) {
+                resultDiv.innerHTML = 'Ошибка: Ваш браузер не поддерживает XMLHttpRequest.';
+                return;
+            }
+
+            xhr.open('GET', API_URL, true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                        // Используем регулярное выражение для обхода возможных проблем с JSON.parse()
+                        // если браузер старый и не полностью совместим.
+                        const data = JSON.parse(xhr.responseText);
+                        const temp = data.current.temperature_2m;
+                        
+                        // Используем конкатенацию строк для вывода
+                        resultDiv.innerHTML = 
+                            '<h2>' + selectElement.options[selectElement.selectedIndex].text + '</h2>' +
+                            '<p>Текущая температура:</p>' +
+                            '<strong>' + temp + ' °C</strong>' +
+                            '<p>Обновлено: ' + new Date().toLocaleTimeString() + '</p>';
+
+                    } catch (e) {
+                        resultDiv.innerHTML = 'Ошибка парсинга данных. Попробуйте еще раз.';
+                    }
+                } else {
+                    resultDiv.innerHTML = 'Ошибка сети: ' + xhr.status;
+                }
+            };
+            
+            xhr.onerror = function() {
+                resultDiv.innerHTML = 'Сетевая ошибка при выполнении запроса.';
+            };
+
+            xhr.send();
+        }
+    </script>
+</body>
+</html>

@@ -4,15 +4,15 @@
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Погода для iPAQ (v1.1)</title>
+    <title>Погода для iPAQ (v1.2)</title>
     <style>
-        /* Очень простой CSS для старых браузеров */
         body { font-family: sans-serif; text-align: center; background-color: #E0E0FF; color: #333; }
         #result { margin-top: 20px; padding: 10px; border: 1px solid #AAA; background-color: #FFF; min-height: 50px; text-align: left; }
         button { padding: 10px 20px; font-size: 16px; margin-top: 15px; }
         select { padding: 8px; font-size: 14px; margin-bottom: 15px; border: 1px solid #777; }
         h1 { margin-bottom: 5px; }
         .version { font-size: 10px; color: #666; margin-top: 20px; }
+        pre { white-space: pre-wrap; word-wrap: break-word; font-size: 10px; }
     </style>
 </head>
 <body>
@@ -28,28 +28,28 @@
     
     <div id="result">Ожидание данных...</div>
     
-    <div class="version">Версия: 1.1 (Windows-1251)</div>
+    <div class="version">Версия: 1.2 (через публичный прокси)</div>
 
     <script>
         const LOCATIONS = {
             '53.05,50.85': 'Покровке',
             '53.20,50.15': 'Самаре'
         };
-        // Указываем HTTP для обхода проблем с сертификатами
-        const API_PROTOCOL = 'http'; 
 
         function fetchWeather() {
             const selectElement = document.getElementById('city-select');
             const resultDiv = document.getElementById('result');
             
             const selectedValue = selectElement.value;
-            const [LAT, LON] = selectedValue.split(',');
+            const lat = selectedValue.split(',')[0];
+            const lon = selectedValue.split(',')[1];
             const cityName = LOCATIONS[selectedValue];
             
             resultDiv.innerHTML = 'Загрузка данных для ' + cityName + '...';
 
-            // Используем HTTP для запроса API
-            const API_URL = `${API_PROTOCOL}://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m&timezone=Europe%2FMoscow`;
+            // Использование публичного прокси для обхода SSL/CORS
+            const API_TARGET_URL = 'http://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m&timezone=Europe%2FMoscow';
+            const PROXY_URL = 'http://cors-anywhere.herokuapp.com/' + API_TARGET_URL; // Новый адрес запроса
 
             const xhr = new XMLHttpRequest();
             
@@ -58,11 +58,10 @@
                 return;
             }
 
-            xhr.open('GET', API_URL, true);
+            xhr.open('GET', PROXY_URL, true);
             
             xhr.onload = function() {
-                // Выводим статус запроса (ключевая информация для отладки)
-                let debugInfo = `Статус: ${xhr.status} ${xhr.statusText || ''}<br>`;
+                let debugInfo = 'Статус: ' + xhr.status + ' ' + (xhr.statusText || '') + '<br>';
                 
                 if (xhr.status === 200) {
                     try {
@@ -70,38 +69,35 @@
                         const temp = data.current.temperature_2m;
                         
                         // Успешный вывод
-                        resultDiv.innerHTML = `
-                            <h2>${selectElement.options[selectElement.selectedIndex].text}</h2>
-                            ${debugInfo}
-                            <p>Температура:</p>
-                            <strong>${temp} °C</strong>
-                            <p>Обновлено: ${new Date().toLocaleTimeString()}</p>
-                        `;
+                        resultDiv.innerHTML = 
+                            '<h2>' + selectElement.options[selectElement.selectedIndex].text + '</h2>' +
+                            debugInfo +
+                            '<p>Температура:</p>' +
+                            '<strong>' + temp + ' °C</strong>' +
+                            '<p>Обновлено: ' + new Date().toLocaleTimeString() + '</p>';
 
                     } catch (e) {
-                        // Ошибка парсинга JSON, но запрос прошел (200 OK)
-                        resultDiv.innerHTML = `
-                            ${debugInfo}
-                            <p><strong>Ошибка парсинга JSON.</strong></p>
-                            <p>Ответ сервера:</p>
-                            <pre>${xhr.responseText.substring(0, 100)}...</pre>
-                        `;
+                        // Ошибка парсинга JSON
+                        resultDiv.innerHTML = 
+                            debugInfo +
+                            '<p><strong>Ошибка парсинга JSON.</strong></p>' +
+                            '<p>Ответ сервера:</p>' +
+                            '<pre>' + xhr.responseText.substring(0, 100) + '...</pre>';
                     }
                 } else {
                     // Ошибка HTTP (404, 500 и т.д.)
-                    resultDiv.innerHTML = `
-                        <h2>Ошибка HTTP!</h2>
-                        ${debugInfo}
-                        <p><strong>Не удалось получить данные.</strong></p>
-                        <p>Ответ сервера (начало):</p>
-                        <pre>${xhr.responseText.substring(0, 100)}...</pre>
-                    `;
+                    resultDiv.innerHTML = 
+                        '<h2>Ошибка HTTP!</h2>' +
+                        debugInfo +
+                        '<p><strong>Не удалось получить данные.</strong></p>' +
+                        '<p>Ответ сервера (начало):</p>' +
+                        '<pre>' + xhr.responseText.substring(0, 100) + '...</pre>';
                 }
             };
             
             xhr.onerror = function() {
-                // Сетевая ошибка (xhr.status будет 0, либо ошибка DNS/SSL/CORS)
-                resultDiv.innerHTML = '<h2>Сетевая ошибка!</h2><p>Не удалось подключиться к серверу API. Возможно, проблема с сетью, DNS или (снова) с HTTPS.</p><p>Статус XHR: 0</p>';
+                // Если сработает эта функция - проблема в самом сетевом стеке
+                resultDiv.innerHTML = '<h2>Сетевая ошибка XHR!</h2><p>Полная блокировка запроса браузером/Оперой. Проверьте соединение или прокси.</p><p>Статус XHR: 0</p>';
             };
 
             xhr.send();

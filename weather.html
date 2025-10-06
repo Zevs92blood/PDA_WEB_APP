@@ -30,7 +30,7 @@
     
     <div id="result">Ожидание данных...</div>
     
-    <div class="version">Версия: 1.4 (Загрузка через Iframe)</div>
+    <div class="version">Версия: 1.4.1 (Загрузка через Iframe)</div>
 
     <iframe id="data-frame" name="data-frame"></iframe>
 
@@ -61,7 +61,7 @@
             resultDiv.innerHTML = 'Загрузка данных для ' + cityName + '...';
 
             // 1. Устанавливаем целевой адрес API (HTTP)
-            dataForm.action = 'http://api.open-meteo.com/v1/forecast';
+            dataForm.action = 'https://api.open-meteo.com/v1/forecast';
             
             // 2. Устанавливаем параметры формы
             document.getElementById('lat-input').value = lat;

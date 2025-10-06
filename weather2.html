@@ -4,12 +4,12 @@
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Погода для iPAQ (v2.0)</title>
+    <title>Погода для iPAQ (v2.2)</title>
     <style>
         body { font-family: sans-serif; text-align: center; color: #333; transition: background-color 1.5s; }
         #result { margin-top: 20px; padding: 10px; border: 1px solid #AAA; background-color: rgba(255, 255, 255, 0.8); min-height: 50px; text-align: left; }
         .forecast-block { margin-top: 15px; border-top: 1px dashed #666; padding-top: 10px; }
-        .hourly-item { margin-top: 5px; font-size: 12px; }
+        .hourly-item { margin-top: 5px; font-size: 13px; }
         button { padding: 10px 20px; font-size: 16px; margin-top: 15px; }
         select { padding: 8px; font-size: 14px; margin-bottom: 15px; border: 1px solid #777; }
         h1 { margin-bottom: 5px; }
@@ -25,11 +25,11 @@
         <option value="53.20,50.15">Самара (Обл. центр)</option>
     </select>
     
-    <button onclick="fetchWeather()">Запросить Прогноз</button>
+    <button onclick="fetchWeather()">Запросить Прогноз (v2.2)</button>
     
     <div id="result">Ожидание данных...</div>
     
-    <div class="version">Версия: 2.0 (Расширенный прогноз, Динамический фон)</div>
+    <div class="version">Версия: 2.2 (Дискретный цвет, 4 времени суток)</div>
 
     <script>
         var LOCATIONS = {
@@ -37,39 +37,28 @@
             '53.20,50.15': 'Самаре'
         };
 
-        // --- ФУНКЦИЯ ДЛЯ ДИНАМИЧЕСКОГО ФОНА ---
+        // --- ФУНКЦИЯ ДЛЯ ДИСКРЕТНОГО ФОНА ---
         function updateBackground(temp) {
-            var minTemp = -40; // Фиолетовый
-            var maxTemp = 40;  // Красный
-            var body = document.body;
-
-            // Нормализация температуры к диапазону 0-1
-            var normalized = (temp - minTemp) / (maxTemp - minTemp);
+            var color;
             
-            // Ограничиваем значение от 0 до 1
-            normalized = Math.min(Math.max(normalized, 0), 1);
-
-            // Интерполяция цвета
-            var r, g, b;
-
-            if (normalized < 0.5) {
-                // Холод: от фиолетового (0) до синего (0.5)
-                // Фиолетовый (100, 0, 100) -> Синий (0, 0, 255)
-                var factor = normalized * 2; // 0 -> 1
-                r = Math.round(100 * (1 - factor));
-                g = 0;
-                b = Math.round(100 + 155 * factor);
+            // Цветовые зоны
+            if (temp >= 35) {
+                color = '#FF0000'; // Красный (35+)
+            } else if (temp >= 25) {
+                color = '#FFA500'; // Оранжевый (25-34)
+            } else if (temp >= 18) {
+                color = '#FFFF00'; // Желтый (18-24)
+            } else if (temp >= 10) {
+                color = '#008000'; // Зеленый (10-17)
+            } else if (temp >= -5) {
+                color = '#ADD8E6'; // Голубой (-5 - 9)
+            } else if (temp >= -20) {
+                color = '#0000FF'; // Синий (-20 - -6)
             } else {
-                // Тепло: от синего (0.5) до красного (1)
-                // Синий (0, 0, 255) -> Красный (255, 0, 0)
-                var factor = (normalized - 0.5) * 2; // 0 -> 1
-                r = Math.round(255 * factor);
-                g = 0;
-                b = Math.round(255 * (1 - factor));
+                color = '#EE82EE'; // Фиолетовый (-21 и ниже)
             }
             
-            // Устанавливаем фон
-            body.style.backgroundColor = 'rgb(' + r + ',' + g + ',' + b + ')';
+            document.body.style.backgroundColor = color;
         }
         
         // --- ОСНОВНАЯ ФУНКЦИЯ ЗАПРОСА ДАННЫХ ---
@@ -85,7 +74,7 @@
             
             resultDiv.innerHTML = 'Загрузка данных для ' + cityName + '...';
 
-            // НОВЫЙ ЗАПРОС: Текущая + Почасовой прогноз на 48 часов
+            // Запрашиваем 48 часов для получения данных на завтра
             var API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&current=temperature_2m,relative_humidity_2m,wind_speed_10m&hourly=temperature_2m,precipitation_probability,wind_speed_10m&forecast_days=2&timezone=UTC%2B04%3A00';
 
             var xhr = new XMLHttpRequest();
@@ -112,42 +101,66 @@
                             // Обновляем фон
                             updateBackground(temp);
 
-                            // 2. Формирование прогноза
+                            // 2. Формирование прогноза (4 ключевых времени: 6, 12, 18, 24/00)
                             var hourly = data.hourly;
                             var now = new Date();
-                            var today = now.getDate();
-                            var tomorrow = new Date(now);
-                            tomorrow.setDate(today + 1);
-                            var tomorrowDate = tomorrow.getDate();
+                            var currentHour = now.getHours();
 
-                            var todayHTML = '<h4>Сегодня</h4>';
-                            var tomorrowHTML = '<h4>Завтра</h4>';
-
+                            var keyHours = [6, 12, 18, 0]; // Утро, День, Вечер, Ночь
+                            var todayHTML = '<h4>Прогноз на сегодня:</h4>';
+                            var tomorrowHTML = '<h4>Прогноз на завтра:</h4>';
+                            var foundToday = 0;
+                            var foundTomorrow = 0;
+                            
+                            // 2.1. Поиск данных
                             var i;
                             for (i = 0; i < hourly.time.length; i++) {
                                 var hourTime = new Date(hourly.time[i]);
-                                
-                                // Отсекаем прошедшие часы
-                                if (hourTime < now) continue;
-
                                 var h = hourTime.getHours();
-                                var h_temp = Math.round(hourly.temperature_2m[i]);
-                                var h_pop = hourly.precipitation_probability[i];
-                                var h_wind = Math.round(hourly.wind_speed_10m[i]);
-
-                                var forecastItem = 
-                                    '<div class="hourly-item">' +
-                                    '<strong>' + (h < 10 ? '0' : '') + h + ':00</strong>: ' +
-                                    h_temp + '°C, ' +
-                                    h_pop + '% осад., ' +
-                                    h_wind + ' м/с' +
-                                    '</div>';
-
-                                if (hourTime.getDate() === today) {
-                                    todayHTML += forecastItem;
-                                } else if (hourTime.getDate() === tomorrowDate) {
-                                    tomorrowHTML += forecastItem;
+                                
+                                // Отсекаем прошедшие часы в текущем дне
+                                if (hourTime.getDate() === now.getDate() && h < currentHour) continue;
+                                
+                                // Проверяем, является ли час ключевым
+                                var isKeyHour = false;
+                                var j;
+                                for(j = 0; j < keyHours.length; j++){
+                                    if(h === keyHours[j]) {
+                                        isKeyHour = true;
+                                        break;
+                                    }
                                 }
+                                
+                                if (isKeyHour) {
+                                    var h_temp = Math.round(hourly.temperature_2m[i]);
+                                    var h_pop = hourly.precipitation_probability[i];
+                                    var h_wind = Math.round(hourly.wind_speed_10m[i]);
+
+                                    var dayLabel = '';
+                                    if (h === 6) dayLabel = 'Утро (6:00)';
+                                    else if (h === 12) dayLabel = 'День (12:00)';
+                                    else if (h === 18) dayLabel = 'Вечер (18:00)';
+                                    else if (h === 0) dayLabel = 'Ночь (0:00)';
+                                    
+                                    var forecastItem = 
+                                        '<div class="hourly-item">' +
+                                        '<strong>' + dayLabel + '</strong>: ' +
+                                        h_temp + '°C, ' +
+                                        h_pop + '% осад., ' +
+                                        h_wind + ' м/с' +
+                                        '</div>';
+
+                                    if (hourTime.getDate() === now.getDate()) {
+                                        todayHTML += forecastItem;
+                                        foundToday++;
+                                    } else if (hourTime.getDate() === (now.getDate() + 1) || h === 0) { // +1 день
+                                        tomorrowHTML += forecastItem;
+                                        foundTomorrow++;
+                                    }
+                                }
+                                
+                                // Ограничение: если нашли 4 точки на завтра, можно не искать дальше
+                                if (foundTomorrow >= 4) break;
                             }
                             
                             // 3. Вывод результата
@@ -162,11 +175,9 @@
                                 '<div class="forecast-block">' + tomorrowHTML + '</div>';
 
                         } catch (e) {
-                            // Ошибка парсинга JSON
-                            resultDiv.innerHTML = '<h2>Ошибка парсинга (v2.0)!</h2><p>Не могу обработать ответ сервера.</p><pre>' + e.toString() + '</pre>';
+                            resultDiv.innerHTML = '<h2>Ошибка парсинга (v2.2)!</h2><p>Не могу обработать ответ сервера.</p><pre>' + e.toString() + '</pre>';
                         }
                     } else {
-                        // Ошибка HTTP
                         resultDiv.innerHTML = '<h2>Ошибка HTTP!</h2><p>Статус: ' + xhr.status + ' ' + (xhr.statusText || '') + '</p>';
                     }
                 }

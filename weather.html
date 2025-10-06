@@ -4,7 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Погода для iPAQ (v1.8)</title>
+    <title>Погода для iPAQ (v1.9)</title>
     <style>
         /* CSS без изменений */
         body { font-family: sans-serif; text-align: center; background-color: #E0E0FF; color: #333; }
@@ -24,11 +24,11 @@
         <option value="53.20,50.15">Самара (Обл. центр)</option>
     </select>
     
-    <button onclick="fetchWeather()">Запросить Погоду (v1.8)</button>
+    <button onclick="fetchWeather()">Запросить Погоду (v1.9)</button>
     
     <div id="result">Ожидание данных...</div>
     
-    <div class="version">Версия: 1.8 (HTTPS + Asia/Samara)</div>
+    <div class="version">Версия: 1.9 (HTTPS + Упрощенный UTC+04:00)</div>
 
     <script>
         var LOCATIONS = {
@@ -48,9 +48,8 @@
             
             resultDiv.innerHTML = 'Загрузка данных для ' + cityName + '...';
 
-            // ИСПОЛЬЗУЕМ HTTPS, так как Opera его может обрабатывать.
-            // ИСПОЛЬЗУЕМ ПРАВИЛЬНЫЙ ЧАСОВОЙ ПОЯС.
-            var API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&current=temperature_2m&timezone=Asia%2FSamara';
+            // ИСПРАВЛЕНО: UTC+04:00 (более совместимый формат)
+            var API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&current=temperature_2m&timezone=UTC%2B04%3A00';
 
             var xhr = new XMLHttpRequest();
             
@@ -61,11 +60,8 @@
 
             xhr.open('GET', API_URL, true);
             
-            // Использование onreadystatechange (самый старый и надежный метод)
             xhr.onreadystatechange = function() {
-                // Готовность = 4 (запрос завершен)
                 if (xhr.readyState === 4) {
-                    // Статус 200 (успех)
                     if (xhr.status === 200) {
                         try {
                             var data = JSON.parse(xhr.responseText);
@@ -83,8 +79,8 @@
                             resultDiv.innerHTML = '<h2>Ошибка 200!</h2><p>Не могу распарсить ответ сервера. Ответ: ' + xhr.responseText.substring(0, 100) + '...</p>';
                         }
                     } else {
-                        // Ошибка HTTP (статус не 200)
-                        resultDiv.innerHTML = '<h2>Ошибка HTTP!</h2><p>Статус: ' + xhr.status + '</p>';
+                        // Вывод ошибки для отладки
+                        resultDiv.innerHTML = '<h2>Ошибка HTTP!</h2><p>Статус: ' + xhr.status + ' ' + (xhr.statusText || '') + '</p>';
                     }
                 }
             };

@@ -4,8 +4,9 @@
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Погода для iPAQ (v1.5)</title>
+    <title>Погода для iPAQ (v1.7)</title>
     <style>
+        /* CSS без изменений */
         body { font-family: sans-serif; text-align: center; background-color: #E0E0FF; color: #333; }
         #result { margin-top: 20px; padding: 10px; border: 1px solid #AAA; background-color: #FFF; min-height: 50px; text-align: left; }
         button { padding: 10px 20px; font-size: 16px; margin-top: 15px; }
@@ -23,66 +24,76 @@
         <option value="53.20,50.15">Самара (Обл. центр)</option>
     </select>
     
-    <button onclick="fetchWeather()">Запросить Погоду</button>
+    <button onclick="fetchWeather()">Запросить Погоду (v1.7)</button>
     
     <div id="result">Ожидание данных...</div>
     
-    <div class="version">Версия: 1.5 (JSONP-костыль)</div>
+    <div class="version">Версия: 1.7 (ES3/WinMo-совместимость)</div>
 
     <script>
-        const LOCATIONS = {
+        var LOCATIONS = {
             '53.05,50.85': 'Покровке',
             '53.20,50.15': 'Самаре'
         };
-        
-        // Глобальная функция, которую вызовет JSONP-ответ Open-Meteo
-        window.handleWeather = function(data) {
-            const selectElement = document.getElementById('city-select');
-            const resultDiv = document.getElementById('result');
-            
-            try {
-                const temp = data.current.temperature_2m;
-                
-                // Успешный вывод
-                resultDiv.innerHTML = 
-                    '<h2>' + selectElement.options[selectElement.selectedIndex].text + '</h2>' +
-                    '<p>Температура:</p>' +
-                    '<strong>' + temp + ' °C</strong>' +
-                    '<p>Обновлено: ' + new Date().toLocaleTimeString() + '</p>';
-                    
-            } catch (e) {
-                resultDiv.innerHTML = '<h2>Ошибка парсинга JSONP!</h2><p>Неверный формат данных.</p>';
-            }
-        };
 
         function fetchWeather() {
-            const selectElement = document.getElementById('city-select');
-            const resultDiv = document.getElementById('result');
+            var selectElement = document.getElementById('city-select');
+            var resultDiv = document.getElementById('result');
             
-            const selectedValue = selectElement.value;
-            const lat = selectedValue.split(',')[0];
-            const lon = selectedValue.split(',')[1];
-            const cityName = LOCATIONS[selectedValue];
+            var selectedValue = selectElement.value;
+            var coords = selectedValue.split(','); // Разделяем строку
+            var LAT = coords[0]; // Получаем координаты старым методом
+            var LON = coords[1]; //
+            var cityName = LOCATIONS[selectedValue];
             
+            // Используем конкатенацию строк
             resultDiv.innerHTML = 'Загрузка данных для ' + cityName + '...';
-            
-            // 1. Формируем URL с параметром callback
-            const API_URL = 'http://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m&timezone=Europe%2FMoscow&callback=handleWeather';
 
-            // 2. Создаем тег <script>
-            const script = document.createElement('script');
-            script.src = API_URL;
-            
-            // 3. Вставляем тег в заголовок страницы (head)
-            document.getElementsByTagName('head')[0].appendChild(script);
+            // Используем HTTP для надежности
+            var API_URL = 'http://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&current=temperature_2m&timezone=Europe%2FMoscow';
 
-            // 4. Устанавливаем таймер для случая ошибки
-            setTimeout(function() {
-                if (resultDiv.innerHTML.indexOf('Температура') === -1) {
-                    resultDiv.innerHTML = '<h2>Ошибка JSONP!</h2><p>Сервер не ответил или не поддерживает JSONP.</p>';
+            var xhr = new XMLHttpRequest();
+            
+            if (!xhr) {
+                resultDiv.innerHTML = 'Ошибка: Ваш браузер не поддерживает XMLHttpRequest.';
+                return;
+            }
+
+            xhr.open('GET', API_URL, true);
+            
+            // Использование onreadystatechange (самый старый метод)
+            xhr.onreadystatechange = function() {
+                // Готовность = 4 (запрос завершен)
+                if (xhr.readyState === 4) {
+                    // Статус 200 (успех)
+                    if (xhr.status === 200) {
+                        try {
+                            // Разбор JSON-ответа
+                            var data = JSON.parse(xhr.responseText);
+                            var temp = data.current.temperature_2m;
+                            
+                            // Успешный вывод (конкатенация)
+                            resultDiv.innerHTML = 
+                                '<h2>' + selectElement.options[selectElement.selectedIndex].text + '</h2>' +
+                                '<p>Температура:</p>' +
+                                '<strong>' + temp + ' °C</strong>' +
+                                '<p>Обновлено: ' + new Date().toLocaleTimeString() + '</p>';
+
+                        } catch (e) {
+                            // Ошибка парсинга JSON
+                            resultDiv.innerHTML = '<h2>Ошибка 200!</h2><p>Не могу распарсить ответ сервера. Начало ответа:<pre>' + xhr.responseText.substring(0, 100) + '...</pre>';
+                        }
+                    } else {
+                        // Ошибка HTTP (статус не 200)
+                        resultDiv.innerHTML = '<h2>Ошибка HTTP!</h2><p>Статус: ' + xhr.status + '</p>';
+                    }
                 }
-            }, 8000); // Ждем 8 секунд
-
+            };
+            
+            // !!! Внимание: xhr.onerror часто не работает в старых IE/Mobile.
+            // Мы полагаемся на onreadystatechange.
+            
+            xhr.send();
         }
     </script>
 </body>

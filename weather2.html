@@ -4,9 +4,8 @@
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Погода для iPAQ (v2.5)</title>
+    <title>Погода для iPAQ (v2.6 - FINAL)</title>
     <style>
-        /* CSS без изменений */
         body { font-family: sans-serif; text-align: center; color: #333; transition: background-color 1.5s; }
         #result { margin-top: 20px; padding: 10px; border: 1px solid #AAA; background-color: rgba(255, 255, 255, 0.8); min-height: 50px; text-align: left; }
         .forecast-block { margin-top: 15px; border-top: 1px dashed #666; padding-top: 10px; }
@@ -35,12 +34,12 @@
         </label>
     </div>
     
-    <button onclick="fetchWeather()">Запросить Прогноз (v2.5)</button>
+    <button onclick="fetchWeather()">Запросить Прогноз (v2.6)</button>
     
     <div id="result">Ожидание данных...</div>
     <div id="aqi-result"></div>
     
-    <div class="version">Версия: 2.5 (Финальный код)</div>
+    <div class="version">Версия: 2.6 (ФИНАЛЬНАЯ: Максимальная стабильность)</div>
 
     <script>
         var LOCATIONS = {
@@ -48,7 +47,7 @@
             '53.20,50.15': 'Самаре'
         };
 
-        // --- ФУНКЦИЯ ДЛЯ ДИСКРЕТНОГО ФОНА (Без изменений) ---
+        // ЦВЕТОВАЯ ШКАЛА
         function updateBackground(temp) {
             var color;
             if (temp >= 35) color = '#FF0000';
@@ -61,7 +60,7 @@
             document.body.style.backgroundColor = color;
         }
         
-        // --- ОСНОВНАЯ ФУНКЦИЯ ЗАПРОСА ПОГОДЫ (ВКЛЮЧАЕТ AQI) ---
+        // ОСНОВНАЯ ФУНКЦИЯ ЗАПРОСА ПОГОДЫ
         function fetchWeather() {
             var selectElement = document.getElementById('city-select');
             var resultDiv = document.getElementById('result');
@@ -75,12 +74,13 @@
             var cityName = LOCATIONS[selectedValue];
             
             resultDiv.innerHTML = 'Загрузка данных для ' + cityName + '...';
-            aqiDiv.innerHTML = isDetailed ? 'Загрузка данных о качестве воздуха...' : ''; // Сбрасываем AQI
+            // Очищаем AQI при каждом запросе
+            aqiDiv.innerHTML = ''; 
 
             var CURRENT_PARAMS = 'temperature_2m,relative_humidity_2m,wind_speed_10m,uv_index,surface_pressure,dew_point_2m';
             var HOURLY_PARAMS = 'temperature_2m,precipitation_probability,wind_speed_10m,uv_index';
 
-            // 1. ЗАПРОС ПОГОДЫ
+            // 1. ЗАПРОС ПОГОДЫ (ОСНОВНОЙ)
             var API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&current=' + CURRENT_PARAMS + '&hourly=' + HOURLY_PARAMS + '&forecast_days=2&timezone=UTC%2B04%3A00';
 
             var xhr = new XMLHttpRequest();
@@ -98,7 +98,7 @@
                         try {
                             var data = JSON.parse(xhr.responseText);
                             
-                            // 1.1 Получение текущих данных
+                            // [ЧАСТЬ 1: ОБРАБОТКА ДАННЫХ]
                             var current = data.current;
                             var temp = current.temperature_2m;
                             var humidity = current.relative_humidity_2m;
@@ -109,7 +109,7 @@
                             
                             updateBackground(temp);
 
-                            // 1.2 Формирование основного блока
+                            // [ЧАСТЬ 2: ФОРМИРОВАНИЕ HTML]
                             var mainHTML = 
                                 '<h2>' + selectElement.options[selectElement.selectedIndex].text + '</h2>' +
                                 '<h3>Текущая погода:</h3>' +
@@ -118,31 +118,27 @@
                                 '<p>Ветер: <strong>' + wind + ' м/с</strong></p>' +
                                 '<p>Обновлено: ' + new Date().toLocaleTimeString() + '</p>';
 
-                            // 1.3 Формирование подробного блока
                             var detailedHTML = '';
                             if (isDetailed) {
                                 detailedHTML += '<div class="forecast-block">';
                                 detailedHTML += '<h4>Детали для самочувствия:</h4>';
                                 detailedHTML += '<p>Давление: <strong>' + pressure + ' мм рт. ст.</strong></p>';
                                 detailedHTML += '<p>Точка Росы: <strong>' + dew_point + ' °C</strong></p>';
-                                detailedHTML += '<p>УФ-индекс: <strong>' + uv_index + '</strong></p>'; // <-- УФ-индекс в подробном режиме
+                                detailedHTML += '<p>УФ-индекс: <strong>' + uv_index + '</strong></p>'; 
                                 detailedHTML += '</div>';
 
-                                // Прогноз по времени суток
+                                // Формирование прогноза по времени суток... (код без изменений)
                                 var hourly = data.hourly;
                                 var now = new Date();
                                 var currentHour = now.getHours();
-
                                 var keyHours = [6, 12, 18, 0];
                                 var todayHTML = '<h4>Прогноз на сегодня:</h4>';
                                 var tomorrowHTML = '<h4>Прогноз на завтра:</h4>';
                                 var foundTomorrow = 0;
-                                
                                 var i;
                                 for (i = 0; i < hourly.time.length; i++) {
                                     var hourTime = new Date(hourly.time[i]);
                                     var h = hourTime.getHours();
-                                    
                                     if (hourTime.getDate() === now.getDate() && h < currentHour) continue;
                                     
                                     var isKeyHour = false;
@@ -159,7 +155,6 @@
                                         var h_pop = hourly.precipitation_probability[i];
                                         var h_wind = Math.round(hourly.wind_speed_10m[i]);
                                         var h_uv = hourly.uv_index[i];
-
                                         var dayLabel = '';
                                         if (h === 6) dayLabel = 'Утро (6:00)';
                                         else if (h === 12) dayLabel = 'День (12:00)';
@@ -188,15 +183,15 @@
                                 detailedHTML += '<div class="forecast-block">' + tomorrowHTML + '</div>';
                             }
                             
-                            // 2. Выводим результат
+                            // Выводим основной и подробный блоки
                             resultDiv.innerHTML = mainHTML + detailedHTML;
 
-                            // 3. ЗАПРОС КАЧЕСТВА ВОЗДУХА (ВНУТРИ ОСНОВНОГО ОБРАБОТЧИКА)
+                            // [ЧАСТЬ 3: ЗАПРОС AQI (ЕСЛИ ВЫБРАН)]
                             if (isDetailed) {
+                                aqiDiv.innerHTML = 'Загрузка данных о качестве воздуха...'; // Обновляем статус
                                 var AQI_URL = 'https://air-quality.open-meteo.com/v1/air-quality?latitude=' + LAT + '&longitude=' + LON + '&current=european_aqi,us_aqi&timezone=UTC%2B04%3A00';
 
                                 var xhr_aqi = new XMLHttpRequest();
-                                
                                 xhr_aqi.open('GET', AQI_URL, true);
                                 
                                 xhr_aqi.onreadystatechange = function() {
@@ -222,18 +217,19 @@
                                                 aqiDiv.innerHTML = 'Не удалось получить данные AQI (ошибка парсинга).';
                                             }
                                         } else {
-                                            aqiDiv.innerHTML = 'Ошибка загрузки AQI. Статус: <strong>' + xhr_aqi.status + '</strong> (Вероятно, блокировка Opera Mini или отсутствие данных).';
+                                            // Оставляем ошибку, если стоит "Подробно"
+                                            aqiDiv.innerHTML = 'Ошибка загрузки AQI. Статус: <strong>' + xhr_aqi.status + '</strong> (блокировка или нет данных).';
                                         }
                                     }
                                 };
-                                
                                 xhr_aqi.send();
                             } else {
+                                // Если "Подробно" снято, просто очищаем блок AQI
                                 aqiDiv.innerHTML = '';
                             }
 
                         } catch (e) {
-                            resultDiv.innerHTML = '<h2>Ошибка парсинга (v2.5)!</h2><p>Не могу обработать ответ сервера.</p><pre>' + e.toString() + '</pre>';
+                            resultDiv.innerHTML = '<h2>Ошибка парсинга (v2.6)!</h2><p>Не могу обработать ответ сервера.</p><pre>' + e.toString() + '</pre>';
                         }
                     } else {
                         resultDiv.innerHTML = '<h2>Ошибка HTTP!</h2><p>Статус: ' + xhr.status + ' ' + (xhr.statusText || '') + '</p>';

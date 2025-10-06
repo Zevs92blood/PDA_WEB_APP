@@ -4,8 +4,9 @@
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Погода для iPAQ (v2.4)</title>
+    <title>Погода для iPAQ (v2.5)</title>
     <style>
+        /* CSS без изменений */
         body { font-family: sans-serif; text-align: center; color: #333; transition: background-color 1.5s; }
         #result { margin-top: 20px; padding: 10px; border: 1px solid #AAA; background-color: rgba(255, 255, 255, 0.8); min-height: 50px; text-align: left; }
         .forecast-block { margin-top: 15px; border-top: 1px dashed #666; padding-top: 10px; }
@@ -34,12 +35,12 @@
         </label>
     </div>
     
-    <button onclick="fetchWeather()">Запросить Прогноз (v2.4)</button>
+    <button onclick="fetchWeather()">Запросить Прогноз (v2.5)</button>
     
     <div id="result">Ожидание данных...</div>
     <div id="aqi-result"></div>
     
-    <div class="version">Версия: 2.4 (Чекбокс, Давление, Точка Росы)</div>
+    <div class="version">Версия: 2.5 (Финальный код)</div>
 
     <script>
         var LOCATIONS = {
@@ -60,62 +61,12 @@
             document.body.style.backgroundColor = color;
         }
         
-        // --- ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ КАЧЕСТВА ВОЗДУХА (ОБНОВЛЕНА ДЛЯ СИНХРОННОСТИ) ---
-        function fetchAirQuality(LAT, LON) {
-            var aqiDiv = document.getElementById('aqi-result');
-            var isDetailed = document.getElementById('detail-checkbox').checked;
-            
-            // Если не нужно подробно, AQI не загружаем
-            if (!isDetailed) {
-                aqiDiv.innerHTML = '';
-                return;
-            }
-            
-            aqiDiv.innerHTML = 'Загрузка данных о качестве воздуха...';
-
-            var AQI_URL = 'https://air-quality.open-meteo.com/v1/air-quality?latitude=' + LAT + '&longitude=' + LON + '&current=european_aqi,us_aqi&timezone=UTC%2B04%3A00';
-
-            var xhr_aqi = new XMLHttpRequest();
-            
-            xhr_aqi.open('GET', AQI_URL, true);
-            
-            xhr_aqi.onreadystatechange = function() {
-                if (xhr_aqi.readyState === 4) {
-                    if (xhr_aqi.status === 200) {
-                        try {
-                            var data = JSON.parse(xhr_aqi.responseText);
-                            var eu_aqi = data.current.european_aqi;
-                            var us_aqi = data.current.us_aqi;
-                            
-                            var aqi_text = '';
-                            if (eu_aqi < 20) aqi_text = 'Хорошее';
-                            else if (eu_aqi < 40) aqi_text = 'Умеренное';
-                            else if (eu_aqi < 60) aqi_text = 'Среднее';
-                            else aqi_text = 'Пониженное';
-
-                            aqiDiv.innerHTML = 
-                                '<h3>Качество воздуха (AQI)</h3>' +
-                                '<p>Европейский индекс: <strong>' + eu_aqi + '</strong> (' + aqi_text + ')</p>' +
-                                '<p>Американский индекс: <strong>' + us_aqi + '</strong></p>';
-
-                        } catch (e) {
-                            aqiDiv.innerHTML = 'Не удалось получить данные AQI.';
-                        }
-                    } else {
-                        aqiDiv.innerHTML = 'Ошибка загрузки AQI. Статус: ' + xhr_aqi.status;
-                    }
-                }
-            };
-            
-            xhr_aqi.send();
-        }
-
-
-        // --- ОСНОВНАЯ ФУНКЦИЯ ЗАПРОСА ПОГОДЫ (ОБНОВЛЕННАЯ) ---
+        // --- ОСНОВНАЯ ФУНКЦИЯ ЗАПРОСА ПОГОДЫ (ВКЛЮЧАЕТ AQI) ---
         function fetchWeather() {
             var selectElement = document.getElementById('city-select');
             var resultDiv = document.getElementById('result');
-            var isDetailed = document.getElementById('detail-checkbox').checked; // Читаем состояние чекбокса
+            var aqiDiv = document.getElementById('aqi-result');
+            var isDetailed = document.getElementById('detail-checkbox').checked;
             
             var selectedValue = selectElement.value;
             var coords = selectedValue.split(',');
@@ -124,11 +75,12 @@
             var cityName = LOCATIONS[selectedValue];
             
             resultDiv.innerHTML = 'Загрузка данных для ' + cityName + '...';
+            aqiDiv.innerHTML = isDetailed ? 'Загрузка данных о качестве воздуха...' : ''; // Сбрасываем AQI
 
-            // НОВЫЕ ПАРАМЕТРЫ: surface_pressure, dew_point_2m
             var CURRENT_PARAMS = 'temperature_2m,relative_humidity_2m,wind_speed_10m,uv_index,surface_pressure,dew_point_2m';
             var HOURLY_PARAMS = 'temperature_2m,precipitation_probability,wind_speed_10m,uv_index';
 
+            // 1. ЗАПРОС ПОГОДЫ
             var API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&current=' + CURRENT_PARAMS + '&hourly=' + HOURLY_PARAMS + '&forecast_days=2&timezone=UTC%2B04%3A00';
 
             var xhr = new XMLHttpRequest();
@@ -146,18 +98,18 @@
                         try {
                             var data = JSON.parse(xhr.responseText);
                             
-                            // 1. Текущая погода
+                            // 1.1 Получение текущих данных
                             var current = data.current;
                             var temp = current.temperature_2m;
                             var humidity = current.relative_humidity_2m;
                             var wind = current.wind_speed_10m;
                             var uv_index = current.uv_index;
-                            var pressure = Math.round(current.surface_pressure * 0.75006); // гПа в мм рт. ст.
+                            var pressure = Math.round(current.surface_pressure * 0.75006);
                             var dew_point = current.dew_point_2m;
                             
                             updateBackground(temp);
 
-                            // 2. Формирование основного блока
+                            // 1.2 Формирование основного блока
                             var mainHTML = 
                                 '<h2>' + selectElement.options[selectElement.selectedIndex].text + '</h2>' +
                                 '<h3>Текущая погода:</h3>' +
@@ -166,14 +118,14 @@
                                 '<p>Ветер: <strong>' + wind + ' м/с</strong></p>' +
                                 '<p>Обновлено: ' + new Date().toLocaleTimeString() + '</p>';
 
-                            // 3. Формирование подробного блока
+                            // 1.3 Формирование подробного блока
                             var detailedHTML = '';
                             if (isDetailed) {
                                 detailedHTML += '<div class="forecast-block">';
                                 detailedHTML += '<h4>Детали для самочувствия:</h4>';
                                 detailedHTML += '<p>Давление: <strong>' + pressure + ' мм рт. ст.</strong></p>';
                                 detailedHTML += '<p>Точка Росы: <strong>' + dew_point + ' °C</strong></p>';
-                                detailedHTML += '<p>УФ-индекс: <strong>' + uv_index + '</strong></p>';
+                                detailedHTML += '<p>УФ-индекс: <strong>' + uv_index + '</strong></p>'; // <-- УФ-индекс в подробном режиме
                                 detailedHTML += '</div>';
 
                                 // Прогноз по времени суток
@@ -236,14 +188,52 @@
                                 detailedHTML += '<div class="forecast-block">' + tomorrowHTML + '</div>';
                             }
                             
-                            // 4. Выводим результат
+                            // 2. Выводим результат
                             resultDiv.innerHTML = mainHTML + detailedHTML;
 
-                            // 5. Запускаем запрос качества воздуха (только если стоит чекбокс)
-                            fetchAirQuality(LAT, LON);
+                            // 3. ЗАПРОС КАЧЕСТВА ВОЗДУХА (ВНУТРИ ОСНОВНОГО ОБРАБОТЧИКА)
+                            if (isDetailed) {
+                                var AQI_URL = 'https://air-quality.open-meteo.com/v1/air-quality?latitude=' + LAT + '&longitude=' + LON + '&current=european_aqi,us_aqi&timezone=UTC%2B04%3A00';
+
+                                var xhr_aqi = new XMLHttpRequest();
+                                
+                                xhr_aqi.open('GET', AQI_URL, true);
+                                
+                                xhr_aqi.onreadystatechange = function() {
+                                    if (xhr_aqi.readyState === 4) {
+                                        if (xhr_aqi.status === 200) {
+                                            try {
+                                                var data_aqi = JSON.parse(xhr_aqi.responseText);
+                                                var eu_aqi = data_aqi.current.european_aqi;
+                                                var us_aqi = data_aqi.current.us_aqi;
+                                                
+                                                var aqi_text = '';
+                                                if (eu_aqi < 20) aqi_text = 'Хорошее';
+                                                else if (eu_aqi < 40) aqi_text = 'Умеренное';
+                                                else if (eu_aqi < 60) aqi_text = 'Среднее';
+                                                else aqi_text = 'Пониженное';
+
+                                                aqiDiv.innerHTML = 
+                                                    '<h3>Качество воздуха (AQI)</h3>' +
+                                                    '<p>Европейский индекс: <strong>' + eu_aqi + '</strong> (' + aqi_text + ')</p>' +
+                                                    '<p>Американский индекс: <strong>' + us_aqi + '</strong></p>';
+
+                                            } catch (e) {
+                                                aqiDiv.innerHTML = 'Не удалось получить данные AQI (ошибка парсинга).';
+                                            }
+                                        } else {
+                                            aqiDiv.innerHTML = 'Ошибка загрузки AQI. Статус: <strong>' + xhr_aqi.status + '</strong> (Вероятно, блокировка Opera Mini или отсутствие данных).';
+                                        }
+                                    }
+                                };
+                                
+                                xhr_aqi.send();
+                            } else {
+                                aqiDiv.innerHTML = '';
+                            }
 
                         } catch (e) {
-                            resultDiv.innerHTML = '<h2>Ошибка парсинга (v2.4)!</h2><p>Не могу обработать ответ сервера.</p><pre>' + e.toString() + '</pre>';
+                            resultDiv.innerHTML = '<h2>Ошибка парсинга (v2.5)!</h2><p>Не могу обработать ответ сервера.</p><pre>' + e.toString() + '</pre>';
                         }
                     } else {
                         resultDiv.innerHTML = '<h2>Ошибка HTTP!</h2><p>Статус: ' + xhr.status + ' ' + (xhr.statusText || '') + '</p>';

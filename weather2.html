@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Погода для iPAQ (v2.0)</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; color: #333; transition: background-color 1.5s; }
+        #result { margin-top: 20px; padding: 10px; border: 1px solid #AAA; background-color: rgba(255, 255, 255, 0.8); min-height: 50px; text-align: left; }
+        .forecast-block { margin-top: 15px; border-top: 1px dashed #666; padding-top: 10px; }
+        .hourly-item { margin-top: 5px; font-size: 12px; }
+        button { padding: 10px 20px; font-size: 16px; margin-top: 15px; }
+        select { padding: 8px; font-size: 14px; margin-bottom: 15px; border: 1px solid #777; }
+        h1 { margin-bottom: 5px; }
+        .version { font-size: 10px; color: #666; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>Выбор города:</h1>
+    
+    <select id="city-select">
+        <option value="53.05,50.85">Покровка (Н-р-н)</option>
+        <option value="53.20,50.15">Самара (Обл. центр)</option>
+    </select>
+    
+    <button onclick="fetchWeather()">Запросить Прогноз</button>
+    
+    <div id="result">Ожидание данных...</div>
+    
+    <div class="version">Версия: 2.0 (Расширенный прогноз, Динамический фон)</div>
+
+    <script>
+        var LOCATIONS = {
+            '53.05,50.85': 'Покровке',
+            '53.20,50.15': 'Самаре'
+        };
+
+        // --- ФУНКЦИЯ ДЛЯ ДИНАМИЧЕСКОГО ФОНА ---
+        function updateBackground(temp) {
+            var minTemp = -40; // Фиолетовый
+            var maxTemp = 40;  // Красный
+            var body = document.body;
+
+            // Нормализация температуры к диапазону 0-1
+            var normalized = (temp - minTemp) / (maxTemp - minTemp);
+            
+            // Ограничиваем значение от 0 до 1
+            normalized = Math.min(Math.max(normalized, 0), 1);
+
+            // Интерполяция цвета
+            var r, g, b;
+
+            if (normalized < 0.5) {
+                // Холод: от фиолетового (0) до синего (0.5)
+                // Фиолетовый (100, 0, 100) -> Синий (0, 0, 255)
+                var factor = normalized * 2; // 0 -> 1
+                r = Math.round(100 * (1 - factor));
+                g = 0;
+                b = Math.round(100 + 155 * factor);
+            } else {
+                // Тепло: от синего (0.5) до красного (1)
+                // Синий (0, 0, 255) -> Красный (255, 0, 0)
+                var factor = (normalized - 0.5) * 2; // 0 -> 1
+                r = Math.round(255 * factor);
+                g = 0;
+                b = Math.round(255 * (1 - factor));
+            }
+            
+            // Устанавливаем фон
+            body.style.backgroundColor = 'rgb(' + r + ',' + g + ',' + b + ')';
+        }
+        
+        // --- ОСНОВНАЯ ФУНКЦИЯ ЗАПРОСА ДАННЫХ ---
+        function fetchWeather() {
+            var selectElement = document.getElementById('city-select');
+            var resultDiv = document.getElementById('result');
+            
+            var selectedValue = selectElement.value;
+            var coords = selectedValue.split(',');
+            var LAT = coords[0];
+            var LON = coords[1];
+            var cityName = LOCATIONS[selectedValue];
+            
+            resultDiv.innerHTML = 'Загрузка данных для ' + cityName + '...';
+
+            // НОВЫЙ ЗАПРОС: Текущая + Почасовой прогноз на 48 часов
+            var API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&current=temperature_2m,relative_humidity_2m,wind_speed_10m&hourly=temperature_2m,precipitation_probability,wind_speed_10m&forecast_days=2&timezone=UTC%2B04%3A00';
+
+            var xhr = new XMLHttpRequest();
+            
+            if (!xhr) {
+                resultDiv.innerHTML = 'Ошибка: Ваш браузер не поддерживает XMLHttpRequest.';
+                return;
+            }
+
+            xhr.open('GET', API_URL, true);
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            
+                            // 1. Текущая погода
+                            var current = data.current;
+                            var temp = current.temperature_2m;
+                            var humidity = current.relative_humidity_2m;
+                            var wind = current.wind_speed_10m;
+                            
+                            // Обновляем фон
+                            updateBackground(temp);
+
+                            // 2. Формирование прогноза
+                            var hourly = data.hourly;
+                            var now = new Date();
+                            var today = now.getDate();
+                            var tomorrow = new Date(now);
+                            tomorrow.setDate(today + 1);
+                            var tomorrowDate = tomorrow.getDate();
+
+                            var todayHTML = '<h4>Сегодня</h4>';
+                            var tomorrowHTML = '<h4>Завтра</h4>';
+
+                            var i;
+                            for (i = 0; i < hourly.time.length; i++) {
+                                var hourTime = new Date(hourly.time[i]);
+                                
+                                // Отсекаем прошедшие часы
+                                if (hourTime < now) continue;
+
+                                var h = hourTime.getHours();
+                                var h_temp = Math.round(hourly.temperature_2m[i]);
+                                var h_pop = hourly.precipitation_probability[i];
+                                var h_wind = Math.round(hourly.wind_speed_10m[i]);
+
+                                var forecastItem = 
+                                    '<div class="hourly-item">' +
+                                    '<strong>' + (h < 10 ? '0' : '') + h + ':00</strong>: ' +
+                                    h_temp + '°C, ' +
+                                    h_pop + '% осад., ' +
+                                    h_wind + ' м/с' +
+                                    '</div>';
+
+                                if (hourTime.getDate() === today) {
+                                    todayHTML += forecastItem;
+                                } else if (hourTime.getDate() === tomorrowDate) {
+                                    tomorrowHTML += forecastItem;
+                                }
+                            }
+                            
+                            // 3. Вывод результата
+                            resultDiv.innerHTML = 
+                                '<h2>' + selectElement.options[selectElement.selectedIndex].text + '</h2>' +
+                                '<h3>Текущая погода:</h3>' +
+                                '<p>Температура: <strong>' + temp + ' °C</strong></p>' +
+                                '<p>Влажность: <strong>' + humidity + ' %</strong></p>' +
+                                '<p>Ветер: <strong>' + wind + ' м/с</strong></p>' +
+                                '<p>Обновлено: ' + new Date().toLocaleTimeString() + '</p>' +
+                                '<div class="forecast-block">' + todayHTML + '</div>' +
+                                '<div class="forecast-block">' + tomorrowHTML + '</div>';
+
+                        } catch (e) {
+                            // Ошибка парсинга JSON
+                            resultDiv.innerHTML = '<h2>Ошибка парсинга (v2.0)!</h2><p>Не могу обработать ответ сервера.</p><pre>' + e.toString() + '</pre>';
+                        }
+                    } else {
+                        // Ошибка HTTP
+                        resultDiv.innerHTML = '<h2>Ошибка HTTP!</h2><p>Статус: ' + xhr.status + ' ' + (xhr.statusText || '') + '</p>';
+                    }
+                }
+            };
+            
+            xhr.send();
+        }
+    </script>
+</body>
+</html>

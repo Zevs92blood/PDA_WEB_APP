@@ -2,29 +2,32 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
-    
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v1.0 (iPAQ)</title>
+    <title>Кубомет Daggerheart v4.0 (iPAQ)</title>
     <style>
         /* Стиль, оптимизированный под iPAQ (аналог v2.6) */
         body { 
-            font-family: sans-serif; 
+            font-family: Tahoma, sans-serif; /* Изменено на Tahoma для iPAQ */
             text-align: center; 
-            color: #333; 
-            background-color: #000000; /* Исходный черный фон */
+            color: #FFF; /* Цвет текста всего документа */
+            background-color: #000000;
             padding: 5px;
         }
-        h2 { color: #FFF; margin-bottom: 15px; }
-        h3 { color: #EEE; margin-top: 10px; }
+        h2 { color: #FFF; margin-bottom: 15px; font-size: 16px; }
+        /* ИЗМЕНЕНИЕ 1: Цвет заголовков блоков h3 меняем на ЧЁРНЫЙ (#000) */
+        h3 { color: #000; margin-top: 10px; font-size: 14px; } 
         .controls { 
             margin-bottom: 15px; 
             border: 1px solid #AAA; 
             padding: 10px; 
-            background-color: #FFF; 
+            background-color: #FFF; /* Белый фон карточки */
+            color: #333; /* Цвет текста внутри карточки */
         }
         .input-group { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         label { font-size: 14px; }
-        input[type="number"], button { 
+        
+        /* Изменено на общие стили для лучшей совместимости */
+        input[type="number"], select, button { 
             padding: 8px; 
             font-size: 16px; 
             margin: 5px 0; 
@@ -32,6 +35,7 @@
             box-sizing: border-box; 
         }
         input[type="number"] { width: 50px; text-align: center; }
+        
         button { 
             cursor: pointer; 
             background-color: #007bff; 
@@ -42,27 +46,36 @@
         #result-box { 
             margin-top: 20px; 
             padding: 10px; 
-            border: 2px solid #333; 
+            border: 2px solid #00ffff; /* Изменено на синий для контраста */
             min-height: 80px; 
-            background-color: #DDD; 
+            background-color: #333; /* Темный фон для контраста */
         }
         
         #result-text { 
             font-size: 16px; 
             font-weight: bold;
             text-align: center;
+            color: #fff; /* Белый текст результата */
         }
+        
+        /* Стили для нового селектора кубов */
+        .dice-selector {
+            width: 70px; /* Уменьшаем ширину селектора кубов */
+            display: inline-block;
+            margin-right: 5px;
+        }
+        
     </style>
 </head>
 <body id="body">
 
-    <h2>Кубомет Daggerheart v1.0 (iPAQ)</h2>
+    <h2>Кубомет Daggerheart v4.0 (iPAQ)</h2>
 
     <div class="controls">
         <h3>Двойственность (к12 Н/С)</h3>
         <div class="input-group">
             <label for="modifier_i">Модификатор:</label>
-            <input type="number" id="modifier_i" value="0" min="-99" max="99">
+            <input type="number" id="modifier_i" value="0" min="-99" max="99" style="width: 50%;">
         </div>
 
         <div class="input-group" style="justify-content: space-around;">
@@ -76,17 +89,26 @@
             </div>
         </div>
         
-        <button onclick="rollDuality_i()">Бросить Двойственность</button>
+        <button onclick="rollDuality_i(); return false;">Бросить Двойственность</button>
     </div>
 
     <div class="controls">
-        <h3>Удача (к20)</h3>
+        <h3>Обычный бросок</h3>
         <div class="input-group">
-            <label for="d20-modifier_i">Модификатор:</label>
-            <input type="number" id="d20-modifier_i" value="0" min="-99" max="99">
+            <label for="d20-modifier_i" style="width: 30%;">Тип куба:</label>
+            <select id="dice-type" class="dice-selector" style="width: 25%;">
+                <option value="4">к4</option>
+                <option value="6">к6</option>
+                <option value="8">к8</option>
+                <option value="10">к10</option>
+                <option value="12">к12</option>
+                <option value="20" selected>к20</option>
+                <option value="100">к100</option>
+            </select>
+            <label for="d20-modifier_i" style="width: 20%;">Мод:</label>
+            <input type="number" id="d20-modifier_i" value="0" min="-99" max="99" style="width: 25%;">
         </div>
-        <button onclick="rollFortune_i()">Бросить Удачу</button>
-    </div>
+        <button onclick="rollBasicDice()">Бросить</button> </div>
     
     <div id="result-box">
         <div id="result-text">
@@ -94,7 +116,7 @@
         </div>
     </div>
 
-    <div style="font-size: 10px; color: #999; margin-top: 15px; text-align: right;">Версия: v1.0-iPAQ</div>
+    <div style="font-size: 10px; color: #999; margin-top: 15px; text-align: right;">Версия: v4.0-iPAQ</div>
 
     <script>
         // --- УТИЛИТЫ ---
@@ -102,20 +124,26 @@
             return document.getElementById(id);
         }
         
+        function roll(max) {
+            return Math.floor(Math.random() * max) + 1;
+        }
+
         // Окрашивание фона (без анимации)
-        function updateBackground_i(isSuccess, isDuality) {
+        function updateBackground_i(outcomeType) {
             var color;
-            if (isDuality) {
-                // Если Двойственность (к12)
-                color = isSuccess ? '#008000' : '#FF0000'; // Зеленый или Красный
+            if (outcomeType === 'CRIT') {
+                color = '#FFFF00'; // Желтый для Крита
+            } else if (outcomeType === 'HOPE') {
+                color = '#008000'; // Зеленый для Надежды
+            } else if (outcomeType === 'FEAR') {
+                color = '#FF0000'; // Красный для Страха
             } else {
-                // Если Удача (к20) - черный фон
-                color = '#000000';
+                color = '#000000'; // Черный для обычных бросков
             }
             getElement('body').style.backgroundColor = color;
         }
 
-        // --- DUALITY (к12 Н/С) для iPAQ ---
+        // --- DUALITY (к12 Н/С) ---
         function rollDuality_i() {
             var mod = parseInt(getElement('modifier_i').value || '0');
             var adv = getElement('advantage_i').checked;
@@ -123,12 +151,14 @@
             
             getElement('result-text').innerHTML = 'Бросаем к12...';
 
-            var roll1 = Math.floor(Math.random() * 12) + 1;
-            var roll2 = Math.floor(Math.random() * 12) + 1;
+            // Логика двойного броска для Надежды/Страха
+            var roll1 = roll(12);
+            var roll2 = roll(12);
             
             var successRoll = roll1;
             var stressRoll = roll2;
 
+            // Логика Преимущества/Помехи, влияющая на присвоение Н/С
             if (adv && !dis) {
                 successRoll = Math.max(roll1, roll2);
                 stressRoll = Math.min(roll1, roll2); 
@@ -136,42 +166,73 @@
                 successRoll = Math.min(roll1, roll2);
                 stressRoll = Math.max(roll1, roll2);
             }
+            // Если и то, и то, или ничего - используем roll1 как Надежду, roll2 как Страх
 
             var finalSuccess = successRoll + mod;
-            var finalStress = stressRoll;
+            
+            var outcomeText;
+            var outcomeType;
+            
+            if (successRoll === stressRoll) {
+                outcomeText = 'КРИТ. УСПЕХ';
+                outcomeType = 'CRIT';
+            } else if (successRoll > stressRoll) {
+                outcomeText = 'НАДЕЖДА';
+                outcomeType = 'HOPE';
+            } else {
+                outcomeText = 'СТРАХ';
+                outcomeType = 'FEAR';
+            }
 
+            // ИЗМЕНЕНИЕ 3: Формат вывода для Дуализма
             var resultHTML = 
-                '**Двойственность (к12):**' +
-                '<br>Успех: ' + finalSuccess + ' (к12:' + successRoll + ' + ' + mod + ')' +
-                '<br>Стресс: ' + finalStress + ' (к12:' + stressRoll + ')';
+                'Н: ' + successRoll + ' / С: ' + stressRoll + 
+                ' / Мод: ' + (mod >= 0 ? '+' : '') + mod + 
+                ' / ИТОГ: ' + finalSuccess + 
+                ' / Исход: ' + outcomeText;
 
-            var isSuccess = finalSuccess >= 7;
-
-            // Обновляем фон (к12 броски)
-            updateBackground_i(isSuccess, true); 
+            updateBackground_i(outcomeType); 
             
             getElement('result-text').innerHTML = resultHTML;
+            return false; // Добавлено, чтобы избежать перезагрузки
         }
 
-        // --- FORTUNE (к20) для iPAQ ---
-        function rollFortune_i() {
+        // --- ОБЫЧНЫЙ БРОСОК (кD) ---
+        function rollBasicDice() {
+            // Получаем тип куба из нового селектора
+            var type = parseInt(getElement('dice-type').value);
             var mod = parseInt(getElement('d20-modifier_i').value || '0');
-            getElement('result-text').innerHTML = 'Бросаем к20...';
+            
+            getElement('result-text').innerHTML = 'Бросаем к' + type + '...';
 
-            var roll = Math.floor(Math.random() * 20) + 1;
-            var total = roll + mod;
+            var rollValue = roll(type);
+            var total = rollValue + mod;
 
+            var modSign = mod >= 0 ? '+' : '';
+
+            // ИЗМЕНЕНИЕ 4: Формат вывода для Обычного броска (1кD)
             var resultHTML = 
-                '**Удача (к20):**' +
-                '<br>Результат: ' + total + ' (к20:' + roll + ' + ' + mod + ')';
+                '[1к' + type + '] Броски: (' + rollValue + ');' +
+                ' Мод: ' + modSign + mod + ';' +
+                ' ИТОГ: ' + total;
 
-            var isSuccess = roll >= 11;
-
-            // Обновляем фон (к20 броски) - всегда черный фон
-            updateBackground_i(isSuccess, false); 
+            // Обновляем фон (обычные броски - всегда черный фон)
+            updateBackground_i(null); 
             
             getElement('result-text').innerHTML = resultHTML;
+            return false;
         }
+
+        // --- Инициализация ---
+        window.onload = function() {
+            // Логика переключения Преимущества/Помехи
+            getElement('advantage_i').addEventListener('change', function() {
+                if (this.checked) getElement('disadvantage_i').checked = false;
+            });
+            getElement('disadvantage_i').addEventListener('change', function() {
+                if (this.checked) getElement('advantage_i').checked = false;
+            });
+        };
     </script>
 </body>
 </html>

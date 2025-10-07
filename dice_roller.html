@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v3.4 (iPAQ - FINAL)</title>
+    <title>Кубомет Daggerheart v3.5 (iPAQ - FINAL)</title>
     <style>
         /* Стиль, оптимизированный под iPAQ */
         body {
@@ -55,26 +55,25 @@
             width: 98%; 
             margin-top: 5px;
         }
-        /* ВОССТАНОВЛЕННЫЙ СТИЛЬ РЕЗУЛЬТАТА ИЗ ВАШЕГО ПРИМЕРА */
-        #result-box { 
-            margin-top: 20px; 
-            padding: 10px; 
-            border: 2px solid #333; 
-            min-height: 80px; 
-            background-color: #DDD; /* Светлый фон для контраста */
-            color: #333; /* Темный текст */
-        }
-        #result-text { 
-            font-size: 16px; 
+        /* УПРОЩЕННЫЙ БЛОК ВЫВОДА (Возвращаем тёмный фон, убираем result-text) */
+        #result-box {
+            border: 2px solid #00ffff; 
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #333; /* Тёмный фон */
+            min-height: 40px;
+            text-align: center; 
+            color: #fff; /* Светлый текст */
+            font-size: 16px;
             font-weight: bold;
-            text-align: center;
+            white-space: pre-wrap; /* Важно для отображения \n */
         }
         .hidden { display: none; }
     </style>
 </head>
 <body id="body">
 
-    <h1>Кубомет Daggerheart v3.4 (iPAQ - FINAL)</h1>
+    <h1>Кубомет Daggerheart v3.5 (iPAQ - FINAL)</h1>
 
     <div class="controls">
         <input type="checkbox" id="fancy-mode" class="hidden"> 
@@ -102,15 +101,13 @@
     </div>
 
     <div id="result-box">
-        <div id="result-text">
-            Добро пожаловать!
-        </div>
+        Добро пожаловать!
     </div>
 
-    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.4-iPAQ-FINAL</div>
+    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.5-iPAQ-FINAL</div>
 
     <script type="text/javascript">
-        var resultTextDiv = document.getElementById('result-text');
+        var resultBoxDiv = document.getElementById('result-box'); // Теперь работаем напрямую с result-box
         var bodyElement = document.getElementById('body');
         var originalBodyColor = '#000'; // Черный фон по умолчанию
         
@@ -118,10 +115,15 @@
             return Math.floor(Math.random() * max) + 1;
         }
 
-        // --- ДИСПЕТЧЕР ВЫВОДА ---
+        // --- ДИСПЕТЧЕР ВЫВОДА (ТОЛЬКО ЧИСТЫЙ ТЕКСТ) ---
         function updateDisplay_i(logTextPlain, isDuality, outcomeType) {
-            // 1. Вывод результата в result-text (просто текст, без сложного HTML)
-            resultTextDiv.innerHTML = logTextPlain;
+            // 1. Вывод результата: ИСПОЛЬЗУЕМ ТОЛЬКО .innerText / .textContent
+            // В iPAQ лучше всего использовать innerText или textContent для чистого текста
+            // Но чтобы сохранить перенос строки, мы оставим innerHTML,
+            // но убедимся, что строка logTextPlain не содержит HTML-тегов, кроме \n
+            
+            // Используем innerHTML, но строка logTextPlain содержит только обычный текст и \n
+            resultBoxDiv.innerHTML = logTextPlain; 
             
             // 2. Смена фона (без анимации)
             if (isDuality) {
@@ -160,8 +162,8 @@
             var finalTotal = totalRoll + mod;
             var modSign = mod >= 0 ? '+' : '';
             
-            // Простой текстовый вывод, как вы просили (без <h2>, <p> и <strong>)
-            var logTextPlain = `ОБЫЧНЫЙ БРОСОК: к${type} (${count} шт.)<br>Броски: ${rolls.join('+')}<br>Мод: ${modSign}${mod}<br>ИТОГ: ${finalTotal}`;
+            // Чистый текст, переносы - \n
+            var logTextPlain = `ОБЫЧНЫЙ БРОСОК: к${type} (${count} шт.)\nБроски: ${rolls.join('+')}\nМод: ${modSign}${mod}\nИТОГ: ${finalTotal}`;
             
             updateDisplay_i(logTextPlain, false, null); // No Duality, No Outcome Type
         }
@@ -198,8 +200,8 @@
                 outcomeType = 'FEAR';
             }
             
-            // Простой текстовый вывод
-            var logTextPlain = `ДВОЙСТВЕННОСТЬ (к12)<br>Надежда: ${hopeRoll} / Страх: ${fearRoll}<br>Мод: ${modSign}${finalMod}<br>ИТОГ: ${finalTotal} / Исход: ${outcomeText}`;
+            // Чистый текст, переносы - \n
+            var logTextPlain = `ДВОЙСТВЕННОСТЬ (к12)\nНадежда: ${hopeRoll} / Страх: ${fearRoll}\nМод: ${modSign}${finalMod}\nИТОГ: ${finalTotal} / Исход: ${outcomeText}`;
             
             updateDisplay_i(logTextPlain, true, outcomeType); // Duality, Outcome Type for Flash
         }

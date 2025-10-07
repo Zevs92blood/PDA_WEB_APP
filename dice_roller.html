@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v3.0 (iPAQ)</title>
+    <title>Кубомет Daggerheart v3.1 (iPAQ - FINAL)</title>
     <style>
         /* Стиль, оптимизированный под iPAQ (аналог v1.0.8) */
         body {
@@ -13,6 +13,7 @@
             color: #fff;
             margin: 0;
             padding: 5px;
+            /* Убрана transition для скорости */
         }
         h1 {
             font-size: 16px;
@@ -65,24 +66,14 @@
             font-size: 14px;
             min-height: 20px;
             color: #fff;
+            text-align: center; /* Центрируем, как в погоде */
         }
-        /* Журнал как простой DIV (для надежности) */
-        #log-area {
-            height: 150px; 
-            overflow-y: scroll;
-            border: 1px solid #555;
-            background-color: #111;
-            color: #ccc;
-            font-family: monospace; 
-            font-size: 12px;
-            padding: 5px;
-        }
-        .hidden { display: none; } /* Скрываем неиспользуемый чекбокс */
+        .hidden { display: none; } /* Скрываем неиспользуемый чекбокс и журнал */
     </style>
 </head>
 <body id="body">
 
-    <h1>Кубомет Daggerheart v3.0 (iPAQ)</h1>
+    <h1>Кубомет Daggerheart v3.1 (iPAQ - FINAL)</h1>
 
     <div class="controls">
         <input type="checkbox" id="fancy-mode" class="hidden"> 
@@ -113,16 +104,12 @@
         Последний бросок: (нет данных)
     </div>
 
-    <h3>Журнал (до 15 записей)</h3>
-    <div id="log-area">-- История бросков --</div>
-
-    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.0-iPAQ</div>
+    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.1-iPAQ-FINAL</div>
 
     <script type="text/javascript">
-        var logArea = document.getElementById('log-area');
+        // var logArea = document.getElementById('log-area'); // УДАЛЕНО
         var lastRollDiv = document.getElementById('last-roll');
         var bodyElement = document.getElementById('body');
-        var maxLogEntries = 15;
         var originalBodyColor = '#000'; // Черный фон по умолчанию
         
         function roll(max) {
@@ -130,43 +117,26 @@
         }
 
         // --- ДИСПЕТЧЕР ВЫВОДА (ТОЛЬКО СТАБИЛЬНЫЙ РЕЖИМ) ---
-        function updateDisplay_i(logTextPlain, isDuality, isSuccess) {
-            // В iPAQ-версии всегда вызываем только стабильный лог
-            logRollStable_i(logTextPlain);
+        function updateDisplay_i(logTextPlain, isDuality, outcomeType) {
+            // 1. Вывод результата в Last Roll
+            lastRollDiv.innerHTML = 'Последний бросок: ' + logTextPlain;
             
-            // В iPAQ-версии меняем фон без анимации только для Двойственности
+            // 2. Смена фона (без анимации)
             if (isDuality) {
-                var color = isSuccess ? '#008000' : '#FF0000'; // Зеленый или Красный
+                var color;
+                if (outcomeType === 'CRIT') {
+                    color = '#FFFF00'; // Желтый для Крита
+                } else if (outcomeType === 'HOPE') {
+                    color = '#008000'; // Зеленый для Надежды
+                } else if (outcomeType === 'FEAR') {
+                    color = '#FF0000'; // Красный для Страха
+                }
                 bodyElement.style.backgroundColor = color;
             } else {
-                bodyElement.style.backgroundColor = originalBodyColor; // Возвращаем черный для других кубов
+                bodyElement.style.backgroundColor = originalBodyColor; 
             }
         }
         
-        // Обновление журнала и Последнего Броска (Самый надежный способ - чистый текст с <br>)
-        function logRollStable_i(newLogEntryText) {
-            var currentLog = logArea.innerHTML;
-            
-            if (currentLog.indexOf('-- История бросков --') > -1) {
-                currentLog = '';
-            }
-            
-            // Создаем новую строку лога (с <br> для совместимости)
-            var newLog = newLogEntryText + '<br>' + currentLog;
-            
-            // Ограничиваем количество записей
-            var logLines = newLog.split('<br>');
-            if (logLines.length > maxLogEntries) {
-                logLines = logLines.slice(0, maxLogEntries);
-            }
-
-            // Обновляем DIV
-            logArea.innerHTML = logLines.join('<br>');
-            
-            // Обновляем блок последнего броска (чистый текст)
-            lastRollDiv.innerHTML = 'Последний: ' + newLogEntryText;
-        }
-
         // --- ЛОГИКА БРОСКОВ ---
         function rollBasicDice() {
             var count = parseInt(document.getElementById('dice-count').value || '1');
@@ -189,7 +159,7 @@
             
             var logTextPlain = `[${count}k${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: ${finalTotal}`;
             
-            updateDisplay_i(logTextPlain, false, false); // No Duality, No Success (Black flash)
+            updateDisplay_i(logTextPlain, false, null); // No Duality, No Outcome Type
         }
 
         function rollDualityDice() {
@@ -211,23 +181,22 @@
             var finalMod = mod + dualityMod;
             var modSign = finalMod >= 0 ? '+' : '';
             
-            var outcomeText;
-            var isSuccess = false;
+            var outcomeText, outcomeType;
 
             if (hopeRoll === fearRoll) {
                 outcomeText = 'КРИТ. УСПЕХ';
-                isSuccess = true;
+                outcomeType = 'CRIT';
             } else if (hopeRoll > fearRoll) {
                 outcomeText = 'НАДЕЖДА';
-                isSuccess = true;
+                outcomeType = 'HOPE';
             } else { 
                 outcomeText = 'СТРАХ';
-                isSuccess = false;
+                outcomeType = 'FEAR';
             }
             
             var logTextPlain = `Н:${hopeRoll} / С:${fearRoll} / Мод:${modSign}${finalMod} / ИТОГ:${finalTotal} / ${outcomeText}`;
             
-            updateDisplay_i(logTextPlain, true, isSuccess); // Duality, check isSuccess (Color flash)
+            updateDisplay_i(logTextPlain, true, outcomeType); // Duality, Outcome Type for Flash
         }
 
         // --- Инициализация ---
@@ -239,7 +208,7 @@
                 if (this.checked) document.getElementById('advantage-check').checked = false;
             });
             
-            lastRollDiv.innerHTML = 'Последний: (нет данных)';
+            lastRollDiv.innerHTML = 'Последний бросок: (нет данных)';
         };
     </script>
 </body>

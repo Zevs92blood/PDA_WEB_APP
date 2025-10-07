@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v3.3 (iPAQ - FINAL)</title>
+    <title>Кубомет Daggerheart v3.4 (iPAQ - FINAL)</title>
     <style>
         /* Стиль, оптимизированный под iPAQ */
         body {
@@ -55,24 +55,26 @@
             width: 98%; 
             margin-top: 5px;
         }
-        /* БЛОК ВЫВОДА РЕЗУЛЬТАТА: максимально упрощаем */
-        #result-box {
-            border: 2px solid #00ffff; 
-            padding: 10px;
-            margin-bottom: 10px;
-            background-color: #333; 
-            min-height: 40px;
-            text-align: center; 
-            color: #fff;
-            font-size: 16px;
+        /* ВОССТАНОВЛЕННЫЙ СТИЛЬ РЕЗУЛЬТАТА ИЗ ВАШЕГО ПРИМЕРА */
+        #result-box { 
+            margin-top: 20px; 
+            padding: 10px; 
+            border: 2px solid #333; 
+            min-height: 80px; 
+            background-color: #DDD; /* Светлый фон для контраста */
+            color: #333; /* Темный текст */
+        }
+        #result-text { 
+            font-size: 16px; 
             font-weight: bold;
+            text-align: center;
         }
         .hidden { display: none; }
     </style>
 </head>
 <body id="body">
 
-    <h1>Кубомет Daggerheart v3.3 (iPAQ - FINAL)</h1>
+    <h1>Кубомет Daggerheart v3.4 (iPAQ - FINAL)</h1>
 
     <div class="controls">
         <input type="checkbox" id="fancy-mode" class="hidden"> 
@@ -100,13 +102,15 @@
     </div>
 
     <div id="result-box">
-        Добро пожаловать!
+        <div id="result-text">
+            Добро пожаловать!
+        </div>
     </div>
 
-    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.3-iPAQ-FINAL</div>
+    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.4-iPAQ-FINAL</div>
 
     <script type="text/javascript">
-        var resultBoxDiv = document.getElementById('result-box');
+        var resultTextDiv = document.getElementById('result-text');
         var bodyElement = document.getElementById('body');
         var originalBodyColor = '#000'; // Черный фон по умолчанию
         
@@ -114,18 +118,10 @@
             return Math.floor(Math.random() * max) + 1;
         }
 
-        // --- ДИСПЕТЧЕР ВЫВОДА (ТОЛЬКО СТАБИЛЬНЫЙ РЕЖИМ) ---
+        // --- ДИСПЕТЧЕР ВЫВОДА ---
         function updateDisplay_i(logTextPlain, isDuality, outcomeType) {
-            // 1. Вывод результата в result-box с минимальным форматированием
-            var timeStamp = new Date().toLocaleTimeString();
-            
-            // Используем только <p> и <strong> для оформления, как в примере с погодой
-            var finalHTML = 
-                '<h2>Последний бросок:</h2>' +
-                '<p style="font-size:14px; font-weight:normal; margin: 5px 0 2px 0;">' + logTextPlain + '</p>' +
-                '<p style="font-size:10px; font-weight:normal; color:#999; margin: 0;">Обновлено: ' + timeStamp + '</p>';
-            
-            resultBoxDiv.innerHTML = finalHTML;
+            // 1. Вывод результата в result-text (просто текст, без сложного HTML)
+            resultTextDiv.innerHTML = logTextPlain;
             
             // 2. Смена фона (без анимации)
             if (isDuality) {
@@ -139,7 +135,7 @@
                 }
                 bodyElement.style.backgroundColor = color;
             } else {
-                // Возвращаем черный фон, если бросок НЕ двойственности
+                // Возвращаем черный фон для обычных бросков
                 bodyElement.style.backgroundColor = originalBodyColor; 
             }
         }
@@ -164,7 +160,8 @@
             var finalTotal = totalRoll + mod;
             var modSign = mod >= 0 ? '+' : '';
             
-            var logTextPlain = `[${count}k${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: ${finalTotal}`;
+            // Простой текстовый вывод, как вы просили (без <h2>, <p> и <strong>)
+            var logTextPlain = `ОБЫЧНЫЙ БРОСОК: к${type} (${count} шт.)<br>Броски: ${rolls.join('+')}<br>Мод: ${modSign}${mod}<br>ИТОГ: ${finalTotal}`;
             
             updateDisplay_i(logTextPlain, false, null); // No Duality, No Outcome Type
         }
@@ -201,13 +198,15 @@
                 outcomeType = 'FEAR';
             }
             
-            var logTextPlain = `Н:${hopeRoll} / С:${fearRoll} / Мод:${modSign}${finalMod} / ИТОГ:${finalTotal} / ${outcomeText}`;
+            // Простой текстовый вывод
+            var logTextPlain = `ДВОЙСТВЕННОСТЬ (к12)<br>Надежда: ${hopeRoll} / Страх: ${fearRoll}<br>Мод: ${modSign}${finalMod}<br>ИТОГ: ${finalTotal} / Исход: ${outcomeText}`;
             
             updateDisplay_i(logTextPlain, true, outcomeType); // Duality, Outcome Type for Flash
         }
 
         // --- Инициализация ---
         window.onload = function() {
+            // Логика переключения Преимущества/Помехи
             document.getElementById('advantage-check').addEventListener('change', function() {
                 if (this.checked) document.getElementById('disadvantage-check').checked = false;
             });

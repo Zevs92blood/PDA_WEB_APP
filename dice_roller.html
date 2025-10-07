@@ -2,9 +2,9 @@
 <html>
 <head>
     <meta charset="Windows-1251">
-    <title>Кубомет Daggerheart v3.0</title>
+    <title>Кубомет Daggerheart v5.0</title>
     <style>
-        /* Стиль для iPAQ */
+        /* Общие стили для iPAQ */
         body {
             font-family: Tahoma, sans-serif;
             font-size: 14px;
@@ -26,20 +26,15 @@
             border: 1px solid #555;
             margin-bottom: 10px;
         }
-        select, input[type="text"], button {
+        select, input[type="text"], button, input[type="checkbox"] {
             display: inline-block;
             padding: 3px;
             margin: 2px 1px;
             font-size: 12px;
             border: 1px solid #777;
         }
-        input[type="text"] {
-            width: 30px; 
-            text-align: center;
-        }
-        .mod-input {
-            width: 40px; 
-        }
+        input[type="text"] { width: 30px; text-align: center; }
+        .mod-input { width: 40px; }
         button {
             background-color: #008000; 
             color: white;
@@ -48,25 +43,32 @@
         }
         /* Блок Последнего Броска */
         #last-roll {
-            border: 2px solid #ffff00; /* Желтая рамка */
+            border: 2px solid #ffff00; 
             padding: 5px;
             margin-bottom: 10px;
             background-color: #333;
             font-size: 14px;
             min-height: 20px;
         }
-        /* Журнал как TEXTAREA */
-        #log-textarea {
-            width: 98%; 
-            height: 150px; /* Фиксированная высота */
+        /* Журнал */
+        #log-area {
+            height: 150px; 
+            overflow-y: scroll;
+            border: 1px solid #555;
             background-color: #111;
             color: #ccc;
-            border: 1px solid #555;
-            font-family: monospace; /* Моноширинный шрифт для выравнивания */
+            font-family: monospace; 
             font-size: 12px;
             padding: 5px;
         }
-        /* Цветовые классы для последнего броска */
+        /* Стили для режима "Сделать красиво" */
+        .fancy-log-entry {
+            border-bottom: 1px dashed #333;
+            padding: 3px 0;
+            white-space: nowrap; 
+        }
+
+        /* Цветовые классы */
         .hope { color: #00ff00; font-weight: bold; } 
         .fear { color: #ff0000; font-weight: bold; } 
         .crit { color: #ffff00; font-weight: bold; } 
@@ -78,6 +80,8 @@
     <h1>Кубомет (к4-к100)</h1>
 
     <div class="controls">
+        <input type="checkbox" id="fancy-mode"> <label for="fancy-mode">Сделать красиво (анимация)</label>
+        
         <h3>1. Обычный бросок</h3>
         <input type="text" id="dice-count" value="1" class="mod-input">
         <select id="dice-type">
@@ -105,34 +109,149 @@
     </div>
 
     <h3>Журнал (до 15 записей)</h3>
-    <textarea id="log-textarea" readonly>-- История бросков --</textarea>
+    <div id="log-area">-- История бросков --</div>
 
     <script type="text/javascript">
-        var logArea = document.getElementById('log-textarea');
+        var logArea = document.getElementById('log-area');
         var lastRollDiv = document.getElementById('last-roll');
-        var logHistoryText = []; // Хранение записей в массиве для простоты управления
         var maxLogEntries = 15;
+        var animationFrames = ['|', '/', '-', '\\'];
+        var animationInterval;
         
         // --- Вспомогательная функция: Бросок кубика ---
         function roll(max) {
             return Math.floor(Math.random() * max) + 1;
         }
 
-        // --- Функция: Обновление журнала и Последнего Броска ---
-        function updateLog(newLogEntryText, lastRollHTML) {
-            // 1. Добавляем новую запись в начало массива
-            logHistoryText.unshift(newLogEntryText);
+        // --- Диспетчер логов ---
+        function logRoll(logTextPlain, logTextHTML) {
+            var isFancy = document.getElementById('fancy-mode').checked;
+
+            // Обновляем блок последнего броска мгновенно
+            lastRollDiv.innerHTML = 'Последний: ' + logTextHTML;
+
+            if (isFancy) {
+                logRollFancy(logTextPlain); // Запускаем сложный режим с анимацией
+            } else {
+                logRollStable(logTextPlain); // Запускаем надежный режим
+            }
+        }
+
+        // --- 1. РЕЖИМ: СТАБИЛЬНЫЙ (Простая конкатенация <br>) ---
+        function logRollStable(newLogEntryText) {
+            var currentLog = logArea.innerHTML;
             
-            // 2. Обрезаем массив до 15 записей
-            if (logHistoryText.length > maxLogEntries) {
-                logHistoryText.pop();
+            // Если это первая запись, удаляем заглушку
+            if (currentLog.indexOf('-- История бросков --') > -1) {
+                currentLog = '';
+            }
+            
+            var newLog = newLogEntryText + '<br>' + currentLog;
+            
+            // Ограничиваем количество записей
+            var logLines = newLog.split('<br>');
+            if (logLines.length > maxLogEntries) {
+                logLines = logLines.slice(0, maxLogEntries);
             }
 
-            // 3. Обновляем TEXTAREA (самый надежный метод)
-            logArea.value = logHistoryText.join('\n');
+            // Обновляем DIV
+            logArea.innerHTML = logLines.join('<br>');
+        }
+        
+        // --- 2. РЕЖИМ: КРАСИВЫЙ (Анимация и динамические DIV) ---
+
+        // Запуск анимации
+        function startAnimation(elementId, logTextPlain) {
+            var el = document.getElementById(elementId);
+            var frameIndex = 0;
+            var frameCount = 0;
+            var screenWidthEstimate = 30;
+
+            clearInterval(animationInterval); 
+
+            animationInterval = setInterval(function() {
+                var symbol = animationFrames[frameIndex % animationFrames.length];
+                
+                var padding = ' '.repeat(frameCount);
+                
+                el.innerHTML = padding + symbol;
+                
+                frameCount++;
+                frameIndex++;
+                
+                if (frameCount >= screenWidthEstimate) {
+                    clearInterval(animationInterval);
+                    el.innerHTML = logTextPlain; // Вставляем результат после анимации
+                }
+            }, 80);
+        }
+
+        // Логирование в режиме Fancy
+        function logRollFancy(logTextPlain) {
+             // 1. Создаем новый элемент лога
+            var newEntry = document.createElement('div');
+            var uniqueId = 'log_' + Date.now();
+            newEntry.className = 'fancy-log-entry';
+            newEntry.id = uniqueId;
+            newEntry.innerHTML = '...'; 
+
+            // 2. Вставляем новую запись в начало (свежие результаты выше)
+            // Перед вставкой нужно очистить содержимое, если оно в стабильном формате
+            if (logArea.innerHTML.indexOf('<br>') > -1 || logArea.innerHTML.indexOf('-- История бросков --') > -1) {
+                logArea.innerHTML = '';
+            }
+
+            logArea.insertBefore(newEntry, logArea.firstChild);
+
+            // 3. Ограничение лога до 15 записей (считаем дочерние элементы)
+            while (logArea.children.length > maxLogEntries) {
+                logArea.removeChild(logArea.lastChild);
+            }
             
-            // 4. Обновляем блок последнего броска
-            lastRollDiv.innerHTML = 'Последний: ' + lastRollHTML;
+            // 4. Запускаем анимацию
+            startAnimation(uniqueId, logTextPlain);
+        }
+        
+        // --- ОБЩАЯ ЛОГИКА БРОСКОВ ---
+
+        function getDualityResults() {
+            var mod = parseInt(document.getElementById('mod-duality').value || '0');
+            var isAdvantage = document.getElementById('advantage-check').checked;
+            var isDisadvantage = document.getElementById('disadvantage-check').checked;
+
+            var hopeRoll = roll(12);
+            var fearRoll = roll(12);
+            var dualityMod = 0;
+            
+            if (isAdvantage && !isDisadvantage) {
+                dualityMod = roll(6);
+            } else if (isDisadvantage && !isAdvantage) {
+                dualityMod = -roll(6);
+            }
+
+            var finalTotal = hopeRoll + mod + dualityMod; 
+            var finalMod = mod + dualityMod;
+            var modSign = finalMod >= 0 ? '+' : '';
+            
+            var outcomeText, outcomeHTML;
+            if (hopeRoll === fearRoll) {
+                outcomeText = 'КРИТ. УСПЕХ';
+                outcomeHTML = '<span class="crit">КРИТ. УСПЕХ</span>';
+            } else if (hopeRoll > fearRoll) {
+                outcomeText = 'НАДЕЖДА';
+                outcomeHTML = '<span class="hope">НАДЕЖДА</span>';
+            } else { 
+                outcomeText = 'СТРАХ';
+                outcomeHTML = '<span class="fear">СТРАХ</span>';
+            }
+            
+            // Лог (текст без HTML)
+            var logTextPlain = `Н:${hopeRoll} / С:${fearRoll} / Мод:${modSign}${finalMod} / ИТОГ:${finalTotal} / ${outcomeText}`;
+            
+            // Вывод (с HTML для цвета)
+            var logTextHTML = `Н: <span class="hope">${hopeRoll}</span> / С: <span class="fear">${fearRoll}</span> / Мод: ${modSign}${finalMod} / ИТОГ: <span class="result-val">${finalTotal}</span> / Исход: ${outcomeHTML}`;
+            
+            return { logTextPlain: logTextPlain, logTextHTML: logTextHTML };
         }
         
         // --- 1. Обработка ОБЫЧНОГО броска ---
@@ -147,73 +266,26 @@
             var rolls = [];
             
             for (var i = 0; i < count; i++) {
-                var result = roll(type);
-                totalRoll += result;
-                rolls.push(result);
+                totalRoll += roll(type);
+                rolls.push(roll(type));
             }
             
             var finalTotal = totalRoll + mod;
             var modSign = mod >= 0 ? '+' : '';
             
-            // Лог (текст без HTML)
-            var logText = `[${count}k${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: ${finalTotal}`;
-
-            // Вывод (с HTML для цвета)
-            var lastRollHTML = `[${count}к${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: <span class="result-val">${finalTotal}</span>`;
+            var logTextPlain = `[${count}k${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: ${finalTotal}`;
+            var logTextHTML = `[${count}к${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: <span class="result-val">${finalTotal}</span>`;
             
-            updateLog(logText, lastRollHTML);
+            logRoll(logTextPlain, logTextHTML);
         }
 
-        // --- 2. Обработка броска ДВОЙСТВЕННОСТИ (Hope/Fear) ---
+        // --- 2. Обработка броска ДВОЙСТВЕННОСТИ ---
         function rollDualityDice() {
-            var mod = parseInt(document.getElementById('mod-duality').value || '0');
-            var isAdvantage = document.getElementById('advantage-check').checked;
-            var isDisadvantage = document.getElementById('disadvantage-check').checked;
-
-            var hopeRoll = roll(12);
-            var fearRoll = roll(12);
-            var outcomeText = '';
-            var dualityMod = 0;
-            var dualityModText = '';
-            
-            // Расчет Преимущества/Помехи
-            if (isAdvantage && !isDisadvantage) {
-                var d6Roll = roll(6);
-                dualityMod = d6Roll;
-                dualityModText = `+к6(${d6Roll}) (Преим)`;
-            } else if (isDisadvantage && !isAdvantage) {
-                var d6Roll = roll(6);
-                dualityMod = -d6Roll;
-                dualityModText = `-к6(${Math.abs(d6Roll)}) (Помеха)`;
-            }
-
-            // Определение результата
-            var outcomeHTML = '';
-            if (hopeRoll === fearRoll) {
-                outcomeText = 'КРИТ. УСПЕХ';
-                outcomeHTML = '<span class="crit">КРИТ. УСПЕХ</span>';
-            } else if (hopeRoll > fearRoll) {
-                outcomeText = 'НАДЕЖДА';
-                outcomeHTML = '<span class="hope">НАДЕЖДА</span>';
-            } else { // fearRoll > hopeRoll
-                outcomeText = 'СТРАХ';
-                outcomeHTML = '<span class="fear">СТРАХ</span>';
-            }
-            
-            var finalTotal = hopeRoll + mod + dualityMod; 
-            var finalMod = mod + dualityMod;
-            var modSign = finalMod >= 0 ? '+' : '';
-            
-            // Лог (текст без HTML)
-            var logText = `Н:${hopeRoll} / С:${fearRoll} / Мод:${modSign}${finalMod} / ИТОГ:${finalTotal} / ${outcomeText}`;
-            
-            // Вывод (с HTML для цвета)
-            var lastRollHTML = `Н: <span class="hope">${hopeRoll}</span> / С: <span class="fear">${fearRoll}</span> / Мод: ${modSign}${finalMod} / ИТОГ: <span class="result-val">${finalTotal}</span> / Исход: ${outcomeHTML}`;
-            
-            updateLog(logText, lastRollHTML);
+            var results = getDualityResults();
+            logRoll(results.logTextPlain, results.logTextHTML);
         }
 
-        // --- Инициализация ---
+        // --- Инициализация и обработчик режима ---
         window.onload = function() {
             // Сброс чекбоксов, чтобы не было конфликта
             document.getElementById('advantage-check').addEventListener('change', function() {
@@ -222,7 +294,20 @@
             document.getElementById('disadvantage-check').addEventListener('change', function() {
                 if (this.checked) document.getElementById('advantage-check').checked = false;
             });
+
+            // Инициализация
             lastRollDiv.innerHTML = 'Последний: <span class="hope">Успешно загружено!</span>';
+
+            // Переключение стилей журнала
+            document.getElementById('fancy-mode').addEventListener('change', function() {
+                // Если переключили в Fancy режим, очищаем DIV, чтобы он начал принимать новые элементы
+                if (this.checked) {
+                    logArea.innerHTML = '';
+                } else {
+                    // Если переключили обратно, восстанавливаем заглушку
+                    logArea.innerHTML = '-- История бросков --';
+                }
+            });
         };
     </script>
 

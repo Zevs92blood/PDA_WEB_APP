@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="Windows-1251">
-    <title>Кубомет Daggerheart (КПК)</title>
+    <title>Кубомет Daggerheart v2.0</title>
     <style>
         /* Стиль для iPAQ */
         body {
@@ -49,10 +49,10 @@
         .log-entry {
             border-bottom: 1px dashed #333;
             padding: 3px 0;
-            white-space: nowrap; /* Важно для анимации */
+            white-space: nowrap; 
         }
         #log-area {
-            height: 200px; /* Ограничиваем высоту для скроллинга */
+            height: 200px; 
             overflow-y: auto;
             border: 1px solid #555;
             padding: 5px;
@@ -62,6 +62,7 @@
         }
         .hope { color: #00ff00; font-weight: bold; } /* Зеленый для Надежды */
         .fear { color: #ff0000; font-weight: bold; } /* Красный для Страха */
+        .crit { color: #ffff00; font-weight: bold; } /* Желтый для Крита */
         .result-val { color: #ffff00; } /* Желтый для результата */
     </style>
 </head>
@@ -99,53 +100,18 @@
     <script type="text/javascript">
         var logArea = document.getElementById('log-area');
         var maxLogEntries = 15;
-        var animationFrames = ['|', '/', '-', '\\'];
-        var animationInterval;
-        var animationElementId;
-
+        
         // --- Вспомогательная функция: Бросок кубика ---
         function roll(max) {
             return Math.floor(Math.random() * max) + 1;
         }
 
-        // --- Функция: Запуск анимации ---
-        function startAnimation(elementId, callback) {
-            var el = document.getElementById(elementId);
-            var frameIndex = 0;
-            var frameCount = 0;
-            var screenWidthEstimate = 30; // Оценка ширины экрана КПК
-
-            // Очищаем предыдущий интервал, если был
-            clearInterval(animationInterval);
-
-            // Устанавливаем новый интервал
-            animationInterval = setInterval(function() {
-                var symbol = animationFrames[frameIndex % animationFrames.length];
-
-                // Создаем символы вправо
-                var padding = ' '.repeat(frameCount);
-
-                el.innerHTML = padding + symbol;
-
-                frameCount++;
-                frameIndex++;
-
-                // Если дошли до конца экрана, останавливаем
-                if (frameCount >= screenWidthEstimate) {
-                    clearInterval(animationInterval);
-                    callback(); // Вызываем функцию, которая вставит результат
-                }
-            }, 80); // 80 мс - скорость анимации
-        }
-
-        // --- Функция: Логирование броска ---
+        // --- Функция: Логирование броска (МГНОВЕННОЕ) ---
         function logRoll(logText) {
             // Создаем новый элемент лога
             var newEntry = document.createElement('div');
-            var uniqueId = 'log_' + Date.now();
             newEntry.className = 'log-entry';
-            newEntry.id = uniqueId;
-            newEntry.innerHTML = '...'; // Начальное состояние для анимации
+            newEntry.innerHTML = logText; // Мгновенная вставка текста
 
             // Вставляем новую запись в начало (свежие результаты выше)
             logArea.insertBefore(newEntry, logArea.firstChild);
@@ -154,34 +120,35 @@
             while (logArea.children.length > maxLogEntries) {
                 logArea.removeChild(logArea.lastChild);
             }
-
-            // Запускаем анимацию
-            startAnimation(uniqueId, function() {
-                // После завершения анимации вставляем финальный результат
-                newEntry.innerHTML = logText;
-            });
+            
+            // Если первая запись — заглушка, удаляем ее
+            if (logArea.lastChild && logArea.lastChild.textContent.indexOf('Журнал бросков') > -1) {
+                 logArea.removeChild(logArea.lastChild);
+            }
         }
-
+        
         // --- 1. Обработка ОБЫЧНОГО броска (1k6, 3k8, etc.) ---
         function rollBasicDice() {
             var count = parseInt(document.getElementById('dice-count').value || '1');
             var type = parseInt(document.getElementById('dice-type').value);
             var mod = parseInt(document.getElementById('mod-basic').value || '0');
-
-            if (count < 1 || count > 10) count = 1; // Ограничение на всякий случай
+            
+            if (count < 1 || count > 10) count = 1; 
 
             var totalRoll = 0;
             var rolls = [];
-
+            
             for (var i = 0; i < count; i++) {
                 var result = roll(type);
                 totalRoll += result;
                 rolls.push(result);
             }
-
+            
             var finalTotal = totalRoll + mod;
-            var logText = `[${count}к${type}] Броски: (${rolls.join('+')}); Модификатор: ${mod}; ИТОГ: <span class="result-val">${finalTotal}</span>`;
-
+            var modSign = mod >= 0 ? '+' : '';
+            
+            var logText = `[${count}к${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: <span class="result-val">${finalTotal}</span>`;
+            
             logRoll(logText);
         }
 
@@ -196,31 +163,33 @@
             var outcomeText = '';
             var dualityMod = 0;
             var dualityModText = '';
-
+            
             // Расчет Преимущества/Помехи
             if (isAdvantage && !isDisadvantage) {
                 var d6Roll = roll(6);
                 dualityMod = d6Roll;
-                dualityModText = `+${d6Roll} (Преимущество)`;
+                dualityModText = `+к6(${d6Roll}) (Преимущество)`;
             } else if (isDisadvantage && !isAdvantage) {
                 var d6Roll = roll(6);
                 dualityMod = -d6Roll;
-                dualityModText = `-${d6Roll} (Помеха)`;
+                dualityModText = `-к6(${Math.abs(d6Roll)}) (Помеха)`;
             }
 
             // Определение результата
-            if (hopeRoll > fearRoll) {
+            if (hopeRoll === fearRoll) {
+                outcomeText = '<span class="crit">КРИТ. УСПЕХ</span>';
+            } else if (hopeRoll > fearRoll) {
                 outcomeText = '<span class="hope">НАДЕЖДА</span>';
-            } else if (fearRoll > hopeRoll) {
+            } else { // fearRoll > hopeRoll
                 outcomeText = '<span class="fear">СТРАХ</span>';
-            } else {
-                outcomeText = 'НИЧЬЯ';
             }
-
-            var finalTotal = hopeRoll + mod + dualityMod; // По Daggerheart суммируется только один d12 + мод
-
-            var logText = `Надежда: <span class="hope">${hopeRoll}</span> / Страх: <span class="fear">${fearRoll}</span> / Мод: ${mod} / D6 Мод: ${dualityModText} / СУММА: <span class="result-val">${finalTotal}</span> / Исход: ${outcomeText}`;
-
+            
+            var finalTotal = hopeRoll + mod + dualityMod; // Hope/Надежда всегда используется для суммы
+            var modSign = (mod + dualityMod) >= 0 ? '+' : '';
+            var finalMod = mod + dualityMod;
+            
+            var logText = `Н: <span class="hope">${hopeRoll}</span> / С: <span class="fear">${fearRoll}</span> / Мод: ${modSign}${finalMod} / ИТОГ: <span class="result-val">${finalTotal}</span> / Исход: ${outcomeText}`;
+            
             logRoll(logText);
         }
 

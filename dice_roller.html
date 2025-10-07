@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v3.6 (iPAQ - FINAL)</title>
+    <title>Кубомет Daggerheart v3.7 (iPAQ - FINAL)</title>
     <style>
         /* Стиль, оптимизированный под iPAQ */
         body {
@@ -66,14 +66,13 @@
             color: #fff;
             font-size: 16px;
             font-weight: bold;
-            /* Убираем white-space: pre-wrap; для чистейшего текста */
         }
         .hidden { display: none; }
     </style>
 </head>
 <body id="body">
 
-    <h1>Кубомет Daggerheart v3.6 (iPAQ - FINAL)</h1>
+    <h1>Кубомет Daggerheart v3.7 (iPAQ - FINAL)</h1>
 
     <div class="controls">
         <input type="checkbox" id="fancy-mode" class="hidden"> 
@@ -90,24 +89,24 @@
             <option value="100">к100</option>
         </select>
         + <input type="text" id="mod-basic" value="0" class="mod-input">
-        <button onclick="rollBasicDice()">Бросить</button>
+        <button onclick="rollBasicDice(); return false;">Бросить</button>
 
         <h3>2. Бросок Двойственности (к12 Н/С)</h3>
         Модификатор: <input type="text" id="mod-duality" value="0" class="mod-input">
         <br>
         <input type="checkbox" id="advantage-check"> Преимущество
         <input type="checkbox" id="disadvantage-check"> Помеха
-        <button onclick="rollDualityDice()">Бросить Двойственность</button>
+        <button onclick="rollDualityDice(); return false;">Бросить Двойственность</button>
     </div>
 
     <div id="result-box">
         Добро пожаловать!
     </div>
 
-    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.6-iPAQ-FINAL</div>
+    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.7-iPAQ-FINAL</div>
 
     <script type="text/javascript">
-        var resultBoxDiv = document.getElementById('result-box'); // Работаем напрямую с result-box
+        var resultBoxDiv = document.getElementById('result-box');
         var bodyElement = document.getElementById('body');
         var originalBodyColor = '#000'; // Черный фон по умолчанию
         
@@ -117,8 +116,8 @@
 
         // --- ДИСПЕТЧЕР ВЫВОДА (ТОЛЬКО ЧИСТЫЙ ТЕКСТ через innerText) ---
         function updateDisplay_i(logTextPlain, isDuality, outcomeType) {
-            // 1. Вывод результата: ИСПОЛЬЗУЕМ ТОЛЬКО .innerText для чистого текста
-            // Новая строка \n в innerText будет отображаться как пробел, но это самый стабильный метод.
+            // 1. Вывод результата: ИСПОЛЬЗУЕМ ТОЛЬКО .innerText 
+            // Это самый стабильный способ в старых браузерах. \n (перенос строки) может не работать, но текст должен появиться.
             resultBoxDiv.innerText = logTextPlain; 
             
             // 2. Смена фона (без анимации)
@@ -212,7 +211,7 @@
                 if (this.checked) document.getElementById('advantage-check').checked = false;
             });
             
-            // При загрузке убедимся, что начальный текст отображается через innerText
+            // Убедимся, что начальный текст отображается через innerText
             resultBoxDiv.innerText = 'Добро пожаловать!';
         };
     </script>

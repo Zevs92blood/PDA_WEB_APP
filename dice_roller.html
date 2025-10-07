@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v3.1 (iPAQ - FINAL)</title>
+    <title>Кубомет Daggerheart v3.2 (iPAQ - FINAL)</title>
     <style>
         /* Стиль, оптимизированный под iPAQ (аналог v1.0.8) */
         body {
@@ -13,7 +13,6 @@
             color: #fff;
             margin: 0;
             padding: 5px;
-            /* Убрана transition для скорости */
         }
         h1 {
             font-size: 16px;
@@ -23,7 +22,6 @@
             padding-bottom: 5px;
             margin-bottom: 5px;
         }
-        /* ИСПРАВЛЕНО: Заголовки блоков */
         h3 {
             font-size: 14px;
             color: #000; /* Черный текст */
@@ -57,23 +55,27 @@
             width: 98%; 
             margin-top: 5px;
         }
-        /* Блок Последнего Броска */
-        #last-roll {
-            border: 2px solid #555; 
-            padding: 5px;
+        /* ВОССТАНОВЛЕННЫЙ БЛОК ВЫВОДА РЕЗУЛЬТАТА (как в старой версии) */
+        #result-box {
+            border: 2px solid #00ffff; /* Рамка */
+            padding: 10px;
             margin-bottom: 10px;
-            background-color: #333;
-            font-size: 14px;
-            min-height: 20px;
+            background-color: #333; /* Темный фон для контраста */
+            min-height: 40px;
+            text-align: center; 
             color: #fff;
-            text-align: center; /* Центрируем, как в погоде */
+        }
+        #result-text {
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
         }
         .hidden { display: none; } /* Скрываем неиспользуемый чекбокс и журнал */
     </style>
 </head>
 <body id="body">
 
-    <h1>Кубомет Daggerheart v3.1 (iPAQ - FINAL)</h1>
+    <h1>Кубомет Daggerheart v3.2 (iPAQ - FINAL)</h1>
 
     <div class="controls">
         <input type="checkbox" id="fancy-mode" class="hidden"> 
@@ -100,15 +102,15 @@
         <button onclick="rollDualityDice()">Бросить Двойственность</button>
     </div>
 
-    <div id="last-roll">
-        Последний бросок: (нет данных)
+    <div id="result-box">
+        <div id="result-text">
+            Добро пожаловать!
+        </div>
     </div>
-
-    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.1-iPAQ-FINAL</div>
+    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.2-iPAQ-FINAL</div>
 
     <script type="text/javascript">
-        // var logArea = document.getElementById('log-area'); // УДАЛЕНО
-        var lastRollDiv = document.getElementById('last-roll');
+        var resultTextDiv = document.getElementById('result-text');
         var bodyElement = document.getElementById('body');
         var originalBodyColor = '#000'; // Черный фон по умолчанию
         
@@ -118,8 +120,8 @@
 
         // --- ДИСПЕТЧЕР ВЫВОДА (ТОЛЬКО СТАБИЛЬНЫЙ РЕЖИМ) ---
         function updateDisplay_i(logTextPlain, isDuality, outcomeType) {
-            // 1. Вывод результата в Last Roll
-            lastRollDiv.innerHTML = 'Последний бросок: ' + logTextPlain;
+            // 1. Вывод результата в result-text
+            resultTextDiv.innerHTML = logTextPlain;
             
             // 2. Смена фона (без анимации)
             if (isDuality) {
@@ -133,6 +135,7 @@
                 }
                 bodyElement.style.backgroundColor = color;
             } else {
+                // Возвращаем черный фон, если бросок НЕ двойственности
                 bodyElement.style.backgroundColor = originalBodyColor; 
             }
         }
@@ -207,8 +210,6 @@
             document.getElementById('disadvantage-check').addEventListener('change', function() {
                 if (this.checked) document.getElementById('advantage-check').checked = false;
             });
-            
-            lastRollDiv.innerHTML = 'Последний бросок: (нет данных)';
         };
     </script>
 </body>

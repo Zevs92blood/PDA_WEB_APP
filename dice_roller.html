@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v3.7 (iPAQ - FINAL)</title>
+    <title>Кубомет Daggerheart v3.7.1 (iPAQ - FINAL)</title>
     <style>
         /* Стиль, оптимизированный под iPAQ */
         body {
@@ -93,15 +93,13 @@
 
         <h3>2. Бросок Двойственности (к12 Н/С)</h3>
         Модификатор: <input type="text" id="mod-duality" value="0" class="mod-input">
-        <br>
+        
         <input type="checkbox" id="advantage-check"> Преимущество
         <input type="checkbox" id="disadvantage-check"> Помеха
         <button onclick="rollDualityDice(); return false;">Бросить Двойственность</button>
     </div>
 
-    <div id="result-box">
-        Добро пожаловать!
-    </div>
+    <div id="result">Ожидание Броска...</div>
 
     <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.7-iPAQ-FINAL</div>
 
@@ -118,7 +116,7 @@
         function updateDisplay_i(logTextPlain, isDuality, outcomeType) {
             // 1. Вывод результата: ИСПОЛЬЗУЕМ ТОЛЬКО .innerText 
             // Это самый стабильный способ в старых браузерах. \n (перенос строки) может не работать, но текст должен появиться.
-            resultBoxDiv.innerText = logTextPlain; 
+            resultDiv.innerHTML = logTextPlain; 
             
             // 2. Смена фона (без анимации)
             if (isDuality) {
@@ -211,8 +209,7 @@
                 if (this.checked) document.getElementById('advantage-check').checked = false;
             });
             
-            // Убедимся, что начальный текст отображается через innerText
-            resultBoxDiv.innerText = 'Добро пожаловать!';
+            
         };
     </script>
 </body>

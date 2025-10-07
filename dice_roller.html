@@ -1,393 +1,177 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="Windows-1251">
-    <title>Кубомет Daggerheart v1.0.13</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Кубомет Daggerheart v1.0 (iPAQ)</title>
     <style>
-        /* Стиль для iPAQ */
-        body {
-            font-family: Tahoma, sans-serif;
-            font-size: 14px;
-            background-color: #000;
-            color: #fff;
-            margin: 0;
+        /* Стиль, оптимизированный под iPAQ (аналог v2.6) */
+        body { 
+            font-family: sans-serif; 
+            text-align: center; 
+            color: #333; 
+            background-color: #000000; /* Исходный черный фон */
             padding: 5px;
-            /* Transition для плавного возврата фона */
-            transition: background-color 0.1s; 
         }
-        h1 {
-            font-size: 16px;
-            color: #00ffff;
-            text-align: center;
-            border-bottom: 1px solid #00ffff;
-            padding-bottom: 5px;
-            margin-bottom: 5px;
+        h2 { color: #FFF; margin-bottom: 15px; }
+        h3 { color: #EEE; margin-top: 10px; }
+        .controls { 
+            margin-bottom: 15px; 
+            border: 1px solid #AAA; 
+            padding: 10px; 
+            background-color: #FFF; 
         }
-        .controls {
-            padding: 5px;
-            border: 1px solid #555;
-            margin-bottom: 10px;
+        .input-group { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        label { font-size: 14px; }
+        input[type="number"], button { 
+            padding: 8px; 
+            font-size: 16px; 
+            margin: 5px 0; 
+            width: 100%; 
+            box-sizing: border-box; 
         }
-        select, input[type="text"], button, input[type="checkbox"] {
-            display: inline-block;
-            padding: 3px;
-            margin: 2px 1px;
-            font-size: 12px;
-            border: 1px solid #777;
-        }
-        input[type="text"] { width: 30px; text-align: center; }
-        .mod-input { width: 40px; }
-        button {
-            background-color: #008000; 
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        /* Блок Последнего Броска (Fancy) */
-        #last-roll {
-            border: 2px solid #555; 
-            padding: 5px;
-            margin-bottom: 10px;
-            background-color: #333;
-            font-size: 14px;
-            min-height: 20px;
-        }
-        /* Журнал как единый блок DIV (Fancy) */
-        #log-area {
-            height: 150px; 
-            overflow-y: scroll;
-            border: 1px solid #555;
-            background-color: #111;
-            color: #ccc;
-            font-family: monospace; 
-            font-size: 12px;
-            padding: 5px;
+        input[type="number"] { width: 50px; text-align: center; }
+        button { 
+            cursor: pointer; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
         }
 
-        /* Классы для "Красивого" режима */
-        .fancy-log-entry {
-            border-bottom: 1px dashed #333;
-            padding: 3px 0;
-            white-space: nowrap; 
+        #result-box { 
+            margin-top: 20px; 
+            padding: 10px; 
+            border: 2px solid #333; 
+            min-height: 80px; 
+            background-color: #DDD; 
         }
-        .hope { color: #00ff00; font-weight: bold; } 
-        .fear { color: #ff0000; font-weight: bold; } 
-        .crit { color: #ffff00; font-weight: bold; } 
-        .result-val { color: #ffff00; }
         
-        /* Стили для ультра-простого отчета (черный на белом) */
-        #simple-report {
-             background-color: white; 
-             color: black; 
-             padding: 5px; 
-             margin-top: 10px; 
-             border: 1px solid black; 
-             font-family: monospace;
-        }
-        #simple-report h2 { 
-            color: black; 
-            font-size: 14px; 
-            margin: 5px 0 2px 0; 
-            border-bottom: 1px solid black; 
-        }
-        #simple-report p { 
-            color: black; 
-            margin: 5px 0; 
-            font-size: 12px;
-        }
-        #simple-report strong { 
+        #result-text { 
             font-size: 16px; 
+            font-weight: bold;
+            text-align: center;
         }
     </style>
 </head>
-<body>
+<body id="body">
 
-    <h1>Кубомет (к4-к100)</h1>
+    <h2>Кубомет Daggerheart v1.0 (iPAQ)</h2>
 
     <div class="controls">
-        <input type="checkbox" id="fancy-mode"> <label for="fancy-mode">Сделать красиво (анимация и цвет)</label>
-        
-        <h3>1. Обычный бросок</h3>
-        <input type="text" id="dice-count" value="1" class="mod-input">
-        <select id="dice-type">
-            <option value="4">к4</option>
-            <option value="6">к6</option>
-            <option value="8">к8</option>
-            <option value="10">к10</option>
-            <option value="12">к12</option>
-            <option value="20">к20</option>
-            <option value="100">к100</option>
-        </select>
-        + <input type="text" id="mod-basic" value="0" class="mod-input">
-        <button onclick="rollBasicDice()">Бросить</button>
+        <h3>Двойственность (к12 Н/С)</h3>
+        <div class="input-group">
+            <label for="modifier_i">Модификатор:</label>
+            <input type="number" id="modifier_i" value="0" min="-99" max="99">
+        </div>
 
-        <h3>2. Бросок Двойственности (к12 Н/С)</h3>
-        Модификатор: <input type="text" id="mod-duality" value="0" class="mod-input">
-        <br>
-        <input type="checkbox" id="advantage-check"> Преимущество
-        <input type="checkbox" id="disadvantage-check"> Помеха
-        <button onclick="rollDualityDice()">Бросить Двойственность</button>
+        <div class="input-group" style="justify-content: space-around;">
+            <div>
+                <label for="advantage_i">Преимущество</label>
+                <input type="checkbox" id="advantage_i">
+            </div>
+            <div>
+                <label for="disadvantage_i">Помеха</label>
+                <input type="checkbox" id="disadvantage_i">
+            </div>
+        </div>
+        
+        <button onclick="rollDuality_i()">Бросить Двойственность</button>
     </div>
 
-    <div id="last-roll" style="display: none;">
-        Последний бросок: (нет данных)
+    <div class="controls">
+        <h3>Удача (к20)</h3>
+        <div class="input-group">
+            <label for="d20-modifier_i">Модификатор:</label>
+            <input type="number" id="d20-modifier_i" value="0" min="-99" max="99">
+        </div>
+        <button onclick="rollFortune_i()">Бросить Удачу</button>
+    </div>
+    
+    <div id="result-box">
+        <div id="result-text">
+            Добро пожаловать!
+        </div>
     </div>
 
-    <h3 id="log-header" style="display: none;">Журнал (до 15 записей)</h3>
-    <div id="log-area" style="display: none;">-- История бросков --</div>
+    <div style="font-size: 10px; color: #999; margin-top: 15px; text-align: right;">Версия: v1.0-iPAQ</div>
 
-    <div id="simple-report">
-        <h2>Добро пожаловать!</h2>
-        <p>Используйте кнопки выше для броска.</p>
-        <p>Результат появится здесь.</p>
-    </div>
-
-    <script type="text/javascript">
-        var logArea = document.getElementById('log-area');
-        var lastRollDiv = document.getElementById('last-roll');
-        var logHeader = document.getElementById('log-header');
-        var simpleReport = document.getElementById('simple-report'); 
-        
-        var maxLogEntries = 15;
-        var animationFrames = ['|', '/', '-', '\\'];
-        var animationInterval;
-        var simpleLogHistory = []; // История для простого режима
-
-        // Цвета для вспышки
-        var FLASH_COLORS = {
-            'КРИТ. УСПЕХ': '#888800', // Оливковый
-            'НАДЕЖДА': '#008000',    // Темно-зеленый
-            'СТРАХ': '#800000'       // Темно-красный
-        };
-
-        // --- Вспомогательная функция: Бросок кубика ---
-        function roll(max) {
-            return Math.floor(Math.random() * max) + 1;
-        }
-
-        // --- ФУНКЦИИ ДЛЯ РЕЖИМА "КРАСИВО" (FANCY MODE) ---
-
-        // Вспышка фона
-        function flashBodyBackground(color) {
-            var body = document.body;
-            body.style.backgroundColor = color; 
-            
-            // Revert after 500ms (0.5 seconds)
-            setTimeout(function() {
-                body.style.backgroundColor = '#000'; // Всегда черный
-            }, 500); 
-        }
-
-        // Запуск анимации с прокруткой
-        function startAnimation(finalResultHTML, outcomeText) {
-            var frameIndex = 0;
-            var frameCount = 0; 
-            var duration = 1500; 
-            var startTime = Date.now();
-            var maxDots = 20; 
-            
-            clearInterval(animationInterval); 
-
-            function animate() {
-                var symbol = animationFrames[frameIndex % animationFrames.length];
-                
-                var dots = '';
-                for (var i = 0; i < frameCount; i++) {
-                    dots += '.';
-                }
-                
-                lastRollDiv.innerHTML = 'Последний: ' + dots + symbol;
-                
-                frameIndex++;
-                frameCount = (frameCount + 1) % maxDots; 
-                
-                if (Date.now() - startTime < duration) {
-                    animationInterval = setTimeout(animate, 100);
-                } else {
-                    lastRollDiv.innerHTML = 'Последний: ' + finalResultHTML;
-                    // Вспышка фона после завершения анимации
-                    if (FLASH_COLORS[outcomeText]) {
-                        flashBodyBackground(FLASH_COLORS[outcomeText]);
-                    }
-                }
-            }
-            animate(); 
-        }
-
-        // Логирование в режиме Fancy
-        function logRollFancy(logTextPlain, finalResultHTML, outcomeText) {
-            // 1. Показываем "красивые" элементы и скрываем простой отчет
-            lastRollDiv.style.display = 'block';
-            logHeader.style.display = 'block';
-            logArea.style.display = 'block';
-            simpleReport.style.display = 'none';
-
-            // 2. Запускаем анимацию в блоке Last Roll
-            startAnimation(finalResultHTML, outcomeText);
-            
-            // 3. Логирование в журнал (динамические DIV)
-            var newEntry = document.createElement('div');
-            newEntry.className = 'fancy-log-entry';
-            newEntry.innerHTML = logTextPlain; 
-            
-            // Очистка журнала от элементов простого режима
-            logArea.innerHTML = '';
-            
-            logArea.insertBefore(newEntry, logArea.firstChild);
-
-            // 4. Ограничение лога до 15 записей
-            while (logArea.children.length > maxLogEntries) {
-                logArea.removeChild(logArea.lastChild);
-            }
-        }
-
-        // --- ФУНКЦИИ ДЛЯ РЕЖИМА "ПРОСТОЙ" (STABLE MODE) ---
-
-        function logRollStable(newLogEntryText) {
-            
-            // 1. Скрываем "красивые" элементы
-            lastRollDiv.style.display = 'none';
-            logHeader.style.display = 'none';
-            logArea.style.display = 'none';
-            
-            // 2. Включаем простой отчет (чёрный на белом)
-            simpleReport.style.display = 'block';
-
-            // 3. Добавляем в историю и обрезаем
-            simpleLogHistory.unshift(newLogEntryText);
-            if (simpleLogHistory.length > maxLogEntries) {
-                simpleLogHistory.pop();
-            }
-
-            // 4. Генерируем ультра-простой вывод
-            var reportHTML = '<h2>Последний бросок:</h2>';
-            reportHTML += '<p><strong>' + simpleLogHistory[0] + '</strong></p>';
-            reportHTML += '<hr style="border-color: black;">';
-            reportHTML += '<h2>История (15 записей):</h2>';
-            
-            for (var i = 0; i < simpleLogHistory.length; i++) {
-                reportHTML += '<p style="margin: 2px 0; font-family: monospace;">' + simpleLogHistory[i] + '</p>';
-            }
-
-            // 5. Однократное обновление DOM
-            simpleReport.innerHTML = reportHTML;
-        }
-
-        // --- ОБЩАЯ ЛОГИКА БРОСКОВ ---
-
-        function getDualityResults() {
-            var mod = parseInt(document.getElementById('mod-duality').value || '0');
-            var isAdvantage = document.getElementById('advantage-check').checked;
-            var isDisadvantage = document.getElementById('disadvantage-check').checked;
-
-            var hopeRoll = roll(12);
-            var fearRoll = roll(12);
-            var dualityMod = 0;
-            
-            if (isAdvantage && !isDisadvantage) {
-                dualityMod = roll(6);
-            } else if (isDisadvantage && !isAdvantage) {
-                dualityMod = -roll(6);
-            }
-
-            var finalTotal = hopeRoll + mod + dualityMod; 
-            var finalMod = mod + dualityMod;
-            var modSign = finalMod >= 0 ? '+' : '';
-            
-            var outcomeText, outcomeHTML;
-            if (hopeRoll === fearRoll) {
-                outcomeText = 'КРИТ. УСПЕХ';
-                outcomeHTML = '<span class="crit">КРИТ. УСПЕХ</span>';
-            } else if (hopeRoll > fearRoll) {
-                outcomeText = 'НАДЕЖДА';
-                outcomeHTML = '<span class="hope">НАДЕЖДА</span>';
-            } else { 
-                outcomeText = 'СТРАХ';
-                outcomeHTML = '<span class="fear">СТРАХ</span>';
-            }
-            
-            var logTextPlain = `Н:${hopeRoll} / С:${fearRoll} / Мод:${modSign}${finalMod} / ИТОГ:${finalTotal} / ${outcomeText}`;
-            var logTextHTML = `Н: <span class="hope">${hopeRoll}</span> / С: <span class="fear">${fearRoll}</span> / Мод: ${modSign}${finalMod} / ИТОГ: <span class="result-val">${finalTotal}</span> / Исход: ${outcomeHTML}`;
-            
-            return { logTextPlain: logTextPlain, logTextHTML: logTextHTML, outcomeText: outcomeText };
+    <script>
+        // --- УТИЛИТЫ ---
+        function getElement(id) {
+            return document.getElementById(id);
         }
         
-        function rollBasicDice() {
-            var count = parseInt(document.getElementById('dice-count').value || '1');
-            var type = parseInt(document.getElementById('dice-type').value);
-            var mod = parseInt(document.getElementById('mod-basic').value || '0');
-            
-            if (count < 1 || count > 10) count = 1; 
-
-            var totalRoll = 0;
-            var rolls = [];
-            
-            for (var i = 0; i < count; i++) {
-                var result = roll(type); 
-                totalRoll += result;
-                rolls.push(result);
-            }
-            
-            var finalTotal = totalRoll + mod;
-            var modSign = mod >= 0 ? '+' : '';
-            
-            var logTextPlain = `[${count}k${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: ${finalTotal}`;
-            var logTextHTML = `[${count}к${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: <span class="result-val">${finalTotal}</span>`;
-            
-            if (document.getElementById('fancy-mode').checked) {
-                // В обычном броске нет специального outcomeText
-                logRollFancy(logTextPlain, logTextHTML, null);
+        // Окрашивание фона (без анимации)
+        function updateBackground_i(isSuccess, isDuality) {
+            var color;
+            if (isDuality) {
+                // Если Двойственность (к12)
+                color = isSuccess ? '#008000' : '#FF0000'; // Зеленый или Красный
             } else {
-                logRollStable(logTextPlain);
+                // Если Удача (к20) - черный фон
+                color = '#000000';
             }
+            getElement('body').style.backgroundColor = color;
         }
 
-        function rollDualityDice() {
-            var results = getDualityResults();
+        // --- DUALITY (к12 Н/С) для iPAQ ---
+        function rollDuality_i() {
+            var mod = parseInt(getElement('modifier_i').value || '0');
+            var adv = getElement('advantage_i').checked;
+            var dis = getElement('disadvantage_i').checked;
             
-            if (document.getElementById('fancy-mode').checked) {
-                logRollFancy(results.logTextPlain, results.logTextHTML, results.outcomeText);
-            } else {
-                logRollStable(results.logTextPlain);
+            getElement('result-text').innerHTML = 'Бросаем к12...';
+
+            var roll1 = Math.floor(Math.random() * 12) + 1;
+            var roll2 = Math.floor(Math.random() * 12) + 1;
+            
+            var successRoll = roll1;
+            var stressRoll = roll2;
+
+            if (adv && !dis) {
+                successRoll = Math.max(roll1, roll2);
+                stressRoll = Math.min(roll1, roll2); 
+            } else if (dis && !adv) {
+                successRoll = Math.min(roll1, roll2);
+                stressRoll = Math.max(roll1, roll2);
             }
+
+            var finalSuccess = successRoll + mod;
+            var finalStress = stressRoll;
+
+            var resultHTML = 
+                '**Двойственность (к12):**' +
+                '<br>Успех: ' + finalSuccess + ' (к12:' + successRoll + ' + ' + mod + ')' +
+                '<br>Стресс: ' + finalStress + ' (к12:' + stressRoll + ')';
+
+            var isSuccess = finalSuccess >= 7;
+
+            // Обновляем фон (к12 броски)
+            updateBackground_i(isSuccess, true); 
+            
+            getElement('result-text').innerHTML = resultHTML;
         }
 
-        // --- Инициализация и обработчик режима ---
-        window.onload = function() {
-            document.getElementById('advantage-check').addEventListener('change', function() {
-                if (this.checked) document.getElementById('disadvantage-check').checked = false;
-            });
-            document.getElementById('disadvantage-check').addEventListener('change', function() {
-                if (this.checked) document.getElementById('advantage-check').checked = false;
-            });
+        // --- FORTUNE (к20) для iPAQ ---
+        function rollFortune_i() {
+            var mod = parseInt(getElement('d20-modifier_i').value || '0');
+            getElement('result-text').innerHTML = 'Бросаем к20...';
+
+            var roll = Math.floor(Math.random() * 20) + 1;
+            var total = roll + mod;
+
+            var resultHTML = 
+                '**Удача (к20):**' +
+                '<br>Результат: ' + total + ' (к20:' + roll + ' + ' + mod + ')';
+
+            var isSuccess = roll >= 11;
+
+            // Обновляем фон (к20 броски) - всегда черный фон
+            updateBackground_i(isSuccess, false); 
             
-            // Инициализация: Simple Mode по умолчанию (HTML уже настроен)
-            
-            document.getElementById('fancy-mode').addEventListener('change', function() {
-                if (this.checked) {
-                    // Переход в Fancy: показываем красивые поля, скрываем простой отчет
-                    lastRollDiv.style.display = 'block';
-                    logHeader.style.display = 'block';
-                    logArea.style.display = 'block';
-                    simpleReport.style.display = 'none';
-                    
-                    lastRollDiv.style.borderColor = '#ffff00';
-                    logArea.innerHTML = '';
-                    lastRollDiv.innerHTML = 'Последний: <span class="hope">Успешно загружено!</span>'; 
-                } else {
-                    // Переход в Simple: скрываем красивые поля, показываем простой отчет
-                    lastRollDiv.style.display = 'none';
-                    logHeader.style.display = 'none';
-                    logArea.style.display = 'none';
-                    simpleReport.style.display = 'block'; 
-                    
-                    // Сбрасываем простой отчет, чтобы он обновился при следующем броске
-                    simpleReport.innerHTML = '<h2>Добро пожаловать!</h2><p>Используйте кнопки выше для броска.</p><p>Результат появится здесь.</p>';
-                    simpleLogHistory = [];
-                }
-            });
-        };
+            getElement('result-text').innerHTML = resultHTML;
+        }
     </script>
-
 </body>
 </html>

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="Windows-1251">
-    <title>Кубомет Daggerheart v1.0.11</title>
+    <title>Кубомет Daggerheart v1.0.12</title>
     <style>
         /* Стиль для iPAQ */
         body {
@@ -72,6 +72,22 @@
         .fear { color: #ff0000; font-weight: bold; } 
         .crit { color: #ffff00; font-weight: bold; } 
         .result-val { color: #ffff00; }
+        
+        /* Стили для ультра-простого отчета (черный на белом) */
+        #simple-report h2 { 
+            color: black; 
+            font-size: 14px; 
+            margin: 5px 0 2px 0; 
+            border-bottom: 1px solid black; 
+        }
+        #simple-report p { 
+            color: black; 
+            margin: 5px 0; 
+            font-size: 12px;
+        }
+        #simple-report strong { 
+            font-size: 16px; 
+        }
     </style>
 </head>
 <body>
@@ -107,16 +123,23 @@
         Последний бросок: (нет данных)
     </div>
 
-    <h3>Журнал (до 15 записей)</h3>
+    <h3 id="log-header">Журнал (до 15 записей)</h3>
     <div id="log-area">-- История бросков --</div>
+
+    <div id="simple-report" style="display: none; background-color: white; color: black; padding: 5px; margin-top: 10px; border: 1px solid black; font-family: monospace;">
+        </div>
 
     <script type="text/javascript">
         var logArea = document.getElementById('log-area');
         var lastRollDiv = document.getElementById('last-roll');
+        var logHeader = document.getElementById('log-header');
+        var simpleReport = document.getElementById('simple-report'); // Новый элемент
+        
         var maxLogEntries = 15;
         var animationFrames = ['|', '/', '-', '\\'];
         var animationInterval;
-        
+        var simpleLogHistory = []; // История для простого режима
+
         // --- Вспомогательная функция: Бросок кубика ---
         function roll(max) {
             return Math.floor(Math.random() * max) + 1;
@@ -158,22 +181,28 @@
 
         // Логирование в режиме Fancy
         function logRollFancy(logTextPlain, finalResultHTML) {
-            // 1. Запускаем анимацию в блоке Last Roll
+            // 1. Показываем "красивые" элементы и скрываем простой отчет
+            lastRollDiv.style.display = 'block';
+            logHeader.style.display = 'block';
+            logArea.style.display = 'block';
+            simpleReport.style.display = 'none';
+
+            // 2. Запускаем анимацию в блоке Last Roll
             startAnimation(finalResultHTML);
             
-            // 2. Логирование в журнал (динамические DIV)
+            // 3. Логирование в журнал (динамические DIV)
             var newEntry = document.createElement('div');
             newEntry.className = 'fancy-log-entry';
             newEntry.innerHTML = logTextPlain; 
 
-            // Очистка старого журнала, если был включен Простой режим
+            // Очистка журнала, если в нем были записи из простого режима (через innerHTML)
             if (logArea.innerHTML.indexOf('<br>') > -1 || logArea.innerHTML.indexOf('-- История бросков --') > -1) {
                 logArea.innerHTML = '';
             }
-
+            
             logArea.insertBefore(newEntry, logArea.firstChild);
 
-            // 3. Ограничение лога до 15 записей
+            // 4. Ограничение лога до 15 записей
             while (logArea.children.length > maxLogEntries) {
                 logArea.removeChild(logArea.lastChild);
             }
@@ -181,31 +210,34 @@
 
         // --- ФУНКЦИИ ДЛЯ РЕЖИМА "ПРОСТОЙ" (STABLE MODE) ---
 
-        // Обновление журнала и Последнего Броска (Ультра-стабильный)
         function logRollStable(newLogEntryText) {
             
-            // 1. УЛЬТРА-УПРОЩЕНИЕ Последнего Броска: Только чистый текст
-            lastRollDiv.innerHTML = 'Последний: ' + newLogEntryText;
+            // 1. Скрываем "красивые" элементы
+            lastRollDiv.style.display = 'none';
+            logHeader.style.display = 'none';
+            logArea.style.display = 'none';
             
-            // 2. Обновление Журнала (один большой блок с <br>)
-            var currentLog = logArea.innerHTML;
-            
-            // Если это первая запись, удаляем заглушку
-            if (currentLog.indexOf('-- История бросков --') > -1 || logArea.children.length > 0) {
-                currentLog = ''; // Очищаем или заглушку, или fancy-элементы
-            }
-            
-            // 3. Создаем новую строку лога (с <br> для совместимости)
-            var newLog = newLogEntryText + '<br>' + currentLog;
-            
-            // 4. Ограничиваем количество записей
-            var logLines = newLog.split('<br>');
-            if (logLines.length > maxLogEntries) {
-                logLines = logLines.slice(0, maxLogEntries);
+            // 2. Включаем простой отчет (чёрный на белом)
+            simpleReport.style.display = 'block';
+
+            // 3. Добавляем в историю и обрезаем
+            simpleLogHistory.unshift(newLogEntryText);
+            if (simpleLogHistory.length > maxLogEntries) {
+                simpleLogHistory.pop();
             }
 
-            // 5. Обновляем DIV (однократная манипуляция с DOM)
-            logArea.innerHTML = logLines.join('<br>');
+            // 4. Генерируем ультра-простой вывод
+            var reportHTML = '<h2>Последний бросок:</h2>';
+            reportHTML += '<p><strong>' + simpleLogHistory[0] + '</strong></p>';
+            reportHTML += '<hr style="border-color: black;">';
+            reportHTML += '<h2>История (15 записей):</h2>';
+            
+            for (var i = 0; i < simpleLogHistory.length; i++) {
+                reportHTML += '<p style="margin: 2px 0; font-family: monospace;">' + simpleLogHistory[i] + '</p>';
+            }
+
+            // 5. Однократное обновление DOM
+            simpleReport.innerHTML = reportHTML;
         }
 
         // --- ОБЩАЯ ЛОГИКА БРОСКОВ ---
@@ -295,20 +327,29 @@
                 if (this.checked) document.getElementById('advantage-check').checked = false;
             });
             
-            // Инициализация. Используем innerHTML с тэгом, так как он должен работать при первой загрузке
-            lastRollDiv.innerHTML = 'Последний: <span class="hope">Успешно загружено!</span>';
+            // Инициализация при загрузке: предполагаем, что Fancy не включен (Simple по умолчанию)
+            lastRollDiv.style.display = 'none'; 
+            logHeader.style.display = 'none';
+            logArea.style.display = 'none';
+            simpleReport.style.display = 'none'; // Скроем до первого броска
 
             document.getElementById('fancy-mode').addEventListener('change', function() {
                 if (this.checked) {
-                    // Переход в Fancy: используем Fancy логику журнала
-                    logArea.innerHTML = '';
+                    // Переход в Fancy: показываем красивые поля, скрываем простой отчет
+                    lastRollDiv.style.display = 'block';
+                    logHeader.style.display = 'block';
+                    logArea.style.display = 'block';
+                    simpleReport.style.display = 'none';
+                    
                     lastRollDiv.style.borderColor = '#ffff00';
+                    logArea.innerHTML = '';
                     lastRollDiv.innerHTML = 'Последний: <span class="hope">Успешно загружено!</span>'; 
                 } else {
-                    // Переход в Simple: восстанавливаем заглушку и Simple логику журнала
-                    logArea.innerHTML = '-- История бросков --';
-                    lastRollDiv.innerHTML = 'Последний: (нет данных)'; // Чистый текст
-                    lastRollDiv.style.borderColor = '#555';
+                    // Переход в Simple: скрываем красивые поля, простой отчет пока скрыт (до первого броска)
+                    lastRollDiv.style.display = 'none';
+                    logHeader.style.display = 'none';
+                    logArea.style.display = 'none';
+                    simpleReport.style.display = 'none';
                 }
             });
         };

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="Windows-1251">
-    <title>Кубомет Daggerheart v2.0</title>
+    <title>Кубомет Daggerheart v3.0</title>
     <style>
         /* Стиль для iPAQ */
         body {
@@ -34,36 +34,43 @@
             border: 1px solid #777;
         }
         input[type="text"] {
-            width: 30px; /* Для кол-ва кубов */
+            width: 30px; 
             text-align: center;
         }
         .mod-input {
-            width: 40px; /* Для модификатора */
+            width: 40px; 
         }
         button {
-            background-color: #008000; /* Зеленый */
+            background-color: #008000; 
             color: white;
             font-weight: bold;
             cursor: pointer;
         }
-        .log-entry {
-            border-bottom: 1px dashed #333;
-            padding: 3px 0;
-            white-space: nowrap; 
+        /* Блок Последнего Броска */
+        #last-roll {
+            border: 2px solid #ffff00; /* Желтая рамка */
+            padding: 5px;
+            margin-bottom: 10px;
+            background-color: #333;
+            font-size: 14px;
+            min-height: 20px;
         }
-        #log-area {
-            height: 200px; 
-            overflow-y: auto;
+        /* Журнал как TEXTAREA */
+        #log-textarea {
+            width: 98%; 
+            height: 150px; /* Фиксированная высота */
+            background-color: #111;
+            color: #ccc;
             border: 1px solid #555;
+            font-family: monospace; /* Моноширинный шрифт для выравнивания */
+            font-size: 12px;
             padding: 5px;
         }
-        .log-entry:first-child {
-            background-color: #333;
-        }
-        .hope { color: #00ff00; font-weight: bold; } /* Зеленый для Надежды */
-        .fear { color: #ff0000; font-weight: bold; } /* Красный для Страха */
-        .crit { color: #ffff00; font-weight: bold; } /* Желтый для Крита */
-        .result-val { color: #ffff00; } /* Желтый для результата */
+        /* Цветовые классы для последнего броска */
+        .hope { color: #00ff00; font-weight: bold; } 
+        .fear { color: #ff0000; font-weight: bold; } 
+        .crit { color: #ffff00; font-weight: bold; } 
+        .result-val { color: #ffff00; }
     </style>
 </head>
 <body>
@@ -71,7 +78,7 @@
     <h1>Кубомет (к4-к100)</h1>
 
     <div class="controls">
-        <h3>1. Обычный бросок (1kX, 2kX, ...)</h3>
+        <h3>1. Обычный бросок</h3>
         <input type="text" id="dice-count" value="1" class="mod-input">
         <select id="dice-type">
             <option value="4">к4</option>
@@ -85,7 +92,7 @@
         + <input type="text" id="mod-basic" value="0" class="mod-input">
         <button onclick="rollBasicDice()">Бросить</button>
 
-        <h3>2. Бросок Двойственности (к12 Надежда/Страх)</h3>
+        <h3>2. Бросок Двойственности (к12 Н/С)</h3>
         Модификатор: <input type="text" id="mod-duality" value="0" class="mod-input">
         <br>
         <input type="checkbox" id="advantage-check"> Преимущество
@@ -93,12 +100,17 @@
         <button onclick="rollDualityDice()">Бросить Двойственность</button>
     </div>
 
-    <div id="log-area">
-        <p style="text-align: center; color: #777;">Журнал бросков (до 15 записей)</p>
+    <div id="last-roll">
+        Последний бросок: (нет данных)
     </div>
 
+    <h3>Журнал (до 15 записей)</h3>
+    <textarea id="log-textarea" readonly>-- История бросков --</textarea>
+
     <script type="text/javascript">
-        var logArea = document.getElementById('log-area');
+        var logArea = document.getElementById('log-textarea');
+        var lastRollDiv = document.getElementById('last-roll');
+        var logHistoryText = []; // Хранение записей в массиве для простоты управления
         var maxLogEntries = 15;
         
         // --- Вспомогательная функция: Бросок кубика ---
@@ -106,28 +118,24 @@
             return Math.floor(Math.random() * max) + 1;
         }
 
-        // --- Функция: Логирование броска (МГНОВЕННОЕ) ---
-        function logRoll(logText) {
-            // Создаем новый элемент лога
-            var newEntry = document.createElement('div');
-            newEntry.className = 'log-entry';
-            newEntry.innerHTML = logText; // Мгновенная вставка текста
-
-            // Вставляем новую запись в начало (свежие результаты выше)
-            logArea.insertBefore(newEntry, logArea.firstChild);
-
-            // Ограничение лога до 15 записей
-            while (logArea.children.length > maxLogEntries) {
-                logArea.removeChild(logArea.lastChild);
-            }
+        // --- Функция: Обновление журнала и Последнего Броска ---
+        function updateLog(newLogEntryText, lastRollHTML) {
+            // 1. Добавляем новую запись в начало массива
+            logHistoryText.unshift(newLogEntryText);
             
-            // Если первая запись — заглушка, удаляем ее
-            if (logArea.lastChild && logArea.lastChild.textContent.indexOf('Журнал бросков') > -1) {
-                 logArea.removeChild(logArea.lastChild);
+            // 2. Обрезаем массив до 15 записей
+            if (logHistoryText.length > maxLogEntries) {
+                logHistoryText.pop();
             }
+
+            // 3. Обновляем TEXTAREA (самый надежный метод)
+            logArea.value = logHistoryText.join('\n');
+            
+            // 4. Обновляем блок последнего броска
+            lastRollDiv.innerHTML = 'Последний: ' + lastRollHTML;
         }
         
-        // --- 1. Обработка ОБЫЧНОГО броска (1k6, 3k8, etc.) ---
+        // --- 1. Обработка ОБЫЧНОГО броска ---
         function rollBasicDice() {
             var count = parseInt(document.getElementById('dice-count').value || '1');
             var type = parseInt(document.getElementById('dice-type').value);
@@ -147,9 +155,13 @@
             var finalTotal = totalRoll + mod;
             var modSign = mod >= 0 ? '+' : '';
             
-            var logText = `[${count}к${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: <span class="result-val">${finalTotal}</span>`;
+            // Лог (текст без HTML)
+            var logText = `[${count}k${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: ${finalTotal}`;
+
+            // Вывод (с HTML для цвета)
+            var lastRollHTML = `[${count}к${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: <span class="result-val">${finalTotal}</span>`;
             
-            logRoll(logText);
+            updateLog(logText, lastRollHTML);
         }
 
         // --- 2. Обработка броска ДВОЙСТВЕННОСТИ (Hope/Fear) ---
@@ -168,7 +180,7 @@
             if (isAdvantage && !isDisadvantage) {
                 var d6Roll = roll(6);
                 dualityMod = d6Roll;
-                dualityModText = `+к6(${d6Roll}) (Преимущество)`;
+                dualityModText = `+к6(${d6Roll}) (Преим)`;
             } else if (isDisadvantage && !isAdvantage) {
                 var d6Roll = roll(6);
                 dualityMod = -d6Roll;
@@ -176,21 +188,29 @@
             }
 
             // Определение результата
+            var outcomeHTML = '';
             if (hopeRoll === fearRoll) {
-                outcomeText = '<span class="crit">КРИТ. УСПЕХ</span>';
+                outcomeText = 'КРИТ. УСПЕХ';
+                outcomeHTML = '<span class="crit">КРИТ. УСПЕХ</span>';
             } else if (hopeRoll > fearRoll) {
-                outcomeText = '<span class="hope">НАДЕЖДА</span>';
+                outcomeText = 'НАДЕЖДА';
+                outcomeHTML = '<span class="hope">НАДЕЖДА</span>';
             } else { // fearRoll > hopeRoll
-                outcomeText = '<span class="fear">СТРАХ</span>';
+                outcomeText = 'СТРАХ';
+                outcomeHTML = '<span class="fear">СТРАХ</span>';
             }
             
-            var finalTotal = hopeRoll + mod + dualityMod; // Hope/Надежда всегда используется для суммы
-            var modSign = (mod + dualityMod) >= 0 ? '+' : '';
+            var finalTotal = hopeRoll + mod + dualityMod; 
             var finalMod = mod + dualityMod;
+            var modSign = finalMod >= 0 ? '+' : '';
             
-            var logText = `Н: <span class="hope">${hopeRoll}</span> / С: <span class="fear">${fearRoll}</span> / Мод: ${modSign}${finalMod} / ИТОГ: <span class="result-val">${finalTotal}</span> / Исход: ${outcomeText}`;
+            // Лог (текст без HTML)
+            var logText = `Н:${hopeRoll} / С:${fearRoll} / Мод:${modSign}${finalMod} / ИТОГ:${finalTotal} / ${outcomeText}`;
             
-            logRoll(logText);
+            // Вывод (с HTML для цвета)
+            var lastRollHTML = `Н: <span class="hope">${hopeRoll}</span> / С: <span class="fear">${fearRoll}</span> / Мод: ${modSign}${finalMod} / ИТОГ: <span class="result-val">${finalTotal}</span> / Исход: ${outcomeHTML}`;
+            
+            updateLog(logText, lastRollHTML);
         }
 
         // --- Инициализация ---
@@ -202,6 +222,7 @@
             document.getElementById('disadvantage-check').addEventListener('change', function() {
                 if (this.checked) document.getElementById('advantage-check').checked = false;
             });
+            lastRollDiv.innerHTML = 'Последний: <span class="hope">Успешно загружено!</span>';
         };
     </script>
 

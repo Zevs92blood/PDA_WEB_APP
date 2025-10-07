@@ -69,7 +69,7 @@
 </head>
 <body id="body">
 
-    <h1>Кубомет Daggerheart v3.8 (iPAQ)</h1>
+    <h1>Кубомет Daggerheart v3.8.2 (iPAQ)</h1>
 
     <div class="controls">
         <h3>1. Обычный бросок</h3>
@@ -123,7 +123,7 @@
     <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.8-iPAQ-FINAL</div>
 
     <script type="text/javascript">
-        var resultBoxDiv = document.getElementById('result-box');
+        var resultBoxDiv = document.getElementById('result-text');
         var bodyElement = document.getElementById('body');
         var originalBodyColor = '#000';
         
@@ -135,7 +135,7 @@
         function updateDisplay_i(logTextPlain, isDuality, outcomeType) {
             // 1. Вывод результата: ИСПОЛЬЗУЕМ ТОЛЬКО .innerText
             resultBoxDiv.innerText = logTextPlain; 
-            //getElement('result-text').innerHTML = resultHTML;
+            getElement('result-text').innerHTML = resultHTML;
             
             // 2. Смена фона (без анимации)
             if (isDuality) {

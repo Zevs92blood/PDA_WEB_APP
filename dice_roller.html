@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v3.5 (iPAQ - FINAL)</title>
+    <title>Кубомет Daggerheart v3.6 (iPAQ - FINAL)</title>
     <style>
         /* Стиль, оптимизированный под iPAQ */
         body {
@@ -55,25 +55,25 @@
             width: 98%; 
             margin-top: 5px;
         }
-        /* УПРОЩЕННЫЙ БЛОК ВЫВОДА (Возвращаем тёмный фон, убираем result-text) */
+        /* БЛОК ВЫВОДА (Максимально простой) */
         #result-box {
             border: 2px solid #00ffff; 
             padding: 10px;
             margin-bottom: 10px;
-            background-color: #333; /* Тёмный фон */
+            background-color: #333; 
             min-height: 40px;
             text-align: center; 
-            color: #fff; /* Светлый текст */
+            color: #fff;
             font-size: 16px;
             font-weight: bold;
-            white-space: pre-wrap; /* Важно для отображения \n */
+            /* Убираем white-space: pre-wrap; для чистейшего текста */
         }
         .hidden { display: none; }
     </style>
 </head>
 <body id="body">
 
-    <h1>Кубомет Daggerheart v3.5 (iPAQ - FINAL)</h1>
+    <h1>Кубомет Daggerheart v3.6 (iPAQ - FINAL)</h1>
 
     <div class="controls">
         <input type="checkbox" id="fancy-mode" class="hidden"> 
@@ -104,10 +104,10 @@
         Добро пожаловать!
     </div>
 
-    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.5-iPAQ-FINAL</div>
+    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.6-iPAQ-FINAL</div>
 
     <script type="text/javascript">
-        var resultBoxDiv = document.getElementById('result-box'); // Теперь работаем напрямую с result-box
+        var resultBoxDiv = document.getElementById('result-box'); // Работаем напрямую с result-box
         var bodyElement = document.getElementById('body');
         var originalBodyColor = '#000'; // Черный фон по умолчанию
         
@@ -115,15 +115,11 @@
             return Math.floor(Math.random() * max) + 1;
         }
 
-        // --- ДИСПЕТЧЕР ВЫВОДА (ТОЛЬКО ЧИСТЫЙ ТЕКСТ) ---
+        // --- ДИСПЕТЧЕР ВЫВОДА (ТОЛЬКО ЧИСТЫЙ ТЕКСТ через innerText) ---
         function updateDisplay_i(logTextPlain, isDuality, outcomeType) {
-            // 1. Вывод результата: ИСПОЛЬЗУЕМ ТОЛЬКО .innerText / .textContent
-            // В iPAQ лучше всего использовать innerText или textContent для чистого текста
-            // Но чтобы сохранить перенос строки, мы оставим innerHTML,
-            // но убедимся, что строка logTextPlain не содержит HTML-тегов, кроме \n
-            
-            // Используем innerHTML, но строка logTextPlain содержит только обычный текст и \n
-            resultBoxDiv.innerHTML = logTextPlain; 
+            // 1. Вывод результата: ИСПОЛЬЗУЕМ ТОЛЬКО .innerText для чистого текста
+            // Новая строка \n в innerText будет отображаться как пробел, но это самый стабильный метод.
+            resultBoxDiv.innerText = logTextPlain; 
             
             // 2. Смена фона (без анимации)
             if (isDuality) {
@@ -215,6 +211,9 @@
             document.getElementById('disadvantage-check').addEventListener('change', function() {
                 if (this.checked) document.getElementById('advantage-check').checked = false;
             });
+            
+            // При загрузке убедимся, что начальный текст отображается через innerText
+            resultBoxDiv.innerText = 'Добро пожаловать!';
         };
     </script>
 </body>

@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v4.2 (iPAQ)</title>
+    <title>Кубомет Daggerheart v4.2.1 (iPAQ)</title>
     <style>
         /* Стиль, оптимизированный под iPAQ */
         body { 
@@ -22,8 +22,13 @@
             background-color: #FFF;
             color: #333;
         }
-        /* Группа ввода, используем flex для горизонтального расположения */
-        .input-group { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        /* Группа ввода - отключаем flex в "controls" для вертикального макета */
+        .input-group { 
+            margin-bottom: 5px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
         label { font-size: 14px; margin-right: 5px; }
         
         /* Общие стили для полей ввода и кнопок */
@@ -31,7 +36,6 @@
             padding: 8px; 
             font-size: 14px;
             margin: 5px 0; 
-            width: 100%; 
             box-sizing: border-box; 
         }
         input[type="number"] { width: 50px; text-align: center; }
@@ -42,6 +46,7 @@
             color: white; 
             border: none; 
             font-weight: bold;
+            width: 100%; /* Кнопка на всю ширину */
         }
 
         #result-box { 
@@ -59,24 +64,32 @@
             color: #fff;
         }
         
-        /* Стили для элементов "Обычного броска" - МАКЕТ 4.2 */
-        .basic-dice-selector { width: 25%; } /* Увеличено, чтобы вместить все */
-        .basic-mod-input { width: 20%; }
-        /* Новое поле ввода для количества кубов */
-        .basic-count-input { width: 20%; } 
-        .basic-label { width: 10%; text-align: right;}
+        /* Стили для элементов "Обычного броска" - ВЕРТИКАЛЬНЫЙ МАКЕТ */
+        .basic-line-item {
+            width: 100%; /* Занимает всю ширину */
+            display: flex; /* Используем flex, чтобы label и input были в строку */
+            justify-content: space-between;
+            align-items: center;
+        }
+        .basic-line-item label {
+            width: 30%; /* Место для метки */
+            text-align: left;
+        }
+        .basic-line-item input, .basic-line-item select {
+            width: 65%; /* Место для поля ввода/выбора */
+        }
         
     </style>
 </head>
 <body id="body">
 
-    <h2>Кубомет Daggerheart v4.2 (iPAQ)</h2>
+    <h2>Кубомет Daggerheart v4.2.1 (iPAQ)</h2>
 
     <div class="controls">
         <h3>Двойственность (к12 Н/С)</h3>
         <div class="input-group">
-            <label for="modifier_i">Модификатор:</label>
-            <input type="number" id="modifier_i" value="0" min="-99" max="99" style="width: 50%;">
+            <label for="modifier_i" style="width: 40%; text-align: left;">Модификатор:</label>
+            <input type="number" id="modifier_i" value="0" min="-99" max="99" style="width: 55%;">
         </div>
 
         <div class="input-group" style="justify-content: space-around;">
@@ -95,13 +108,15 @@
 
     <div class="controls">
         <h3>Обычный бросок</h3>
-        <div class="input-group" style="justify-content: space-around;">
-            
-            <label class="basic-label" for="dice-count" style="width: 15%;">Кол-во:</label>
-            <input type="number" id="dice-count" value="1" min="1" max="99" class="basic-count-input">
-            
-            <label class="basic-label" for="dice-type" style="width: 10%;">Куб:</label>
-            <select id="dice-type" class="basic-dice-selector">
+        
+        <div class="basic-line-item">
+            <label for="dice-count">Количество кубов:</label>
+            <input type="number" id="dice-count" value="1" min="1" max="99">
+        </div>
+        
+        <div class="basic-line-item">
+            <label for="dice-type">Тип куба:</label>
+            <select id="dice-type">
                 <option value="4">к4</option>
                 <option value="6">к6</option>
                 <option value="8">к8</option>
@@ -110,10 +125,13 @@
                 <option value="20" selected>к20</option>
                 <option value="100">к100</option>
             </select>
-            
-            <label class="basic-label" for="d20-modifier_i" style="width: 10%;">Мод:</label>
-            <input type="number" id="d20-modifier_i" value="0" min="-99" max="99" class="basic-mod-input">
         </div>
+        
+        <div class="basic-line-item">
+            <label for="d20-modifier_i">Модификатор:</label>
+            <input type="number" id="d20-modifier_i" value="0" min="-99" max="99">
+        </div>
+
         <button onclick="rollBasicDice(); return false;">Бросить</button>
     </div>
     
@@ -123,7 +141,7 @@
         </div>
     </div>
 
-    <div style="font-size: 10px; color: #999; margin-top: 15px; text-align: right;">Версия: v4.2-iPAQ</div>
+    <div style="font-size: 10px; color: #999; margin-top: 15px; text-align: right;">Версия: v4.2.1-iPAQ</div>
 
     <script>
         // --- УТИЛИТЫ ---
@@ -207,7 +225,6 @@
             var type = parseInt(getElement('dice-type').value);
             var mod = parseInt(getElement('d20-modifier_i').value || '0');
             
-            // Защита от 0 или отрицательного количества кубов
             if (count < 1) count = 1;
 
             getElement('result-text').innerHTML = 'Бросаем ' + count + 'к' + type + '...';

@@ -3,9 +3,9 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v3.2 (iPAQ - FINAL)</title>
+    <title>Кубомет Daggerheart v3.3 (iPAQ - FINAL)</title>
     <style>
-        /* Стиль, оптимизированный под iPAQ (аналог v1.0.8) */
+        /* Стиль, оптимизированный под iPAQ */
         body {
             font-family: Tahoma, sans-serif;
             font-size: 14px;
@@ -55,27 +55,24 @@
             width: 98%; 
             margin-top: 5px;
         }
-        /* ВОССТАНОВЛЕННЫЙ БЛОК ВЫВОДА РЕЗУЛЬТАТА (как в старой версии) */
+        /* БЛОК ВЫВОДА РЕЗУЛЬТАТА: максимально упрощаем */
         #result-box {
-            border: 2px solid #00ffff; /* Рамка */
+            border: 2px solid #00ffff; 
             padding: 10px;
             margin-bottom: 10px;
-            background-color: #333; /* Темный фон для контраста */
+            background-color: #333; 
             min-height: 40px;
             text-align: center; 
             color: #fff;
-        }
-        #result-text {
             font-size: 16px;
             font-weight: bold;
-            color: #fff;
         }
-        .hidden { display: none; } /* Скрываем неиспользуемый чекбокс и журнал */
+        .hidden { display: none; }
     </style>
 </head>
 <body id="body">
 
-    <h1>Кубомет Daggerheart v3.2 (iPAQ - FINAL)</h1>
+    <h1>Кубомет Daggerheart v3.3 (iPAQ - FINAL)</h1>
 
     <div class="controls">
         <input type="checkbox" id="fancy-mode" class="hidden"> 
@@ -103,14 +100,13 @@
     </div>
 
     <div id="result-box">
-        <div id="result-text">
-            Добро пожаловать!
-        </div>
+        Добро пожаловать!
     </div>
-    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.2-iPAQ-FINAL</div>
+
+    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.3-iPAQ-FINAL</div>
 
     <script type="text/javascript">
-        var resultTextDiv = document.getElementById('result-text');
+        var resultBoxDiv = document.getElementById('result-box');
         var bodyElement = document.getElementById('body');
         var originalBodyColor = '#000'; // Черный фон по умолчанию
         
@@ -120,8 +116,16 @@
 
         // --- ДИСПЕТЧЕР ВЫВОДА (ТОЛЬКО СТАБИЛЬНЫЙ РЕЖИМ) ---
         function updateDisplay_i(logTextPlain, isDuality, outcomeType) {
-            // 1. Вывод результата в result-text
-            resultTextDiv.innerHTML = logTextPlain;
+            // 1. Вывод результата в result-box с минимальным форматированием
+            var timeStamp = new Date().toLocaleTimeString();
+            
+            // Используем только <p> и <strong> для оформления, как в примере с погодой
+            var finalHTML = 
+                '<h2>Последний бросок:</h2>' +
+                '<p style="font-size:14px; font-weight:normal; margin: 5px 0 2px 0;">' + logTextPlain + '</p>' +
+                '<p style="font-size:10px; font-weight:normal; color:#999; margin: 0;">Обновлено: ' + timeStamp + '</p>';
+            
+            resultBoxDiv.innerHTML = finalHTML;
             
             // 2. Смена фона (без анимации)
             if (isDuality) {

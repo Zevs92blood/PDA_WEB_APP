@@ -3,9 +3,8 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v3.7.1 (iPAQ - FINAL)</title>
+    <title>Кубомет Daggerheart v3.8 (iPAQ)</title>
     <style>
-        /* Стиль, оптимизированный под iPAQ */
         body {
             font-family: Tahoma, sans-serif;
             font-size: 14px;
@@ -24,38 +23,36 @@
         }
         h3 {
             font-size: 14px;
-            color: #000; /* Черный текст */
+            color: #000;
             margin: 5px 0;
         }
         .controls {
             padding: 5px;
             border: 1px solid #AAA; 
             margin-bottom: 10px;
-            background-color: #FFF; /* Белый фон карточки */
-            color: #000; /* Черный текст внутри карточки */
+            background-color: #FFF; 
+            color: #000;
         }
-        label { color: #000; } /* Текст меток черный */
-        select, input[type="text"], button, input[type="checkbox"] {
+        label, select, button, input[type="checkbox"] {
             display: inline-block;
             padding: 4px;
             margin: 3px 1px;
             font-size: 13px; 
             border: 1px solid #777;
             box-sizing: border-box;
-            background-color: #FFF; /* Поля ввода белые */
+            background-color: #FFF;
             color: #000;
         }
-        input[type="text"] { width: 35px; text-align: center; }
-        .mod-input { width: 45px; }
+        select { width: 45px; text-align: center; } /* Уменьшено для селекторов */
+        .full-width-select { width: 98%; }
         button {
-            background-color: #007bff; /* Синяя кнопка */
+            background-color: #007bff;
             color: white;
             font-weight: bold;
             cursor: pointer;
             width: 98%; 
             margin-top: 5px;
         }
-        /* БЛОК ВЫВОДА (Максимально простой) */
         #result-box {
             border: 2px solid #00ffff; 
             padding: 10px;
@@ -72,14 +69,16 @@
 </head>
 <body id="body">
 
-    <h1>Кубомет Daggerheart v3.7 (iPAQ - FINAL)</h1>
+    <h1>Кубомет Daggerheart v3.8 (iPAQ)</h1>
 
     <div class="controls">
-        <input type="checkbox" id="fancy-mode" class="hidden"> 
-        
         <h3>1. Обычный бросок</h3>
-        <input type="text" id="dice-count" value="1" class="mod-input">
-        <select id="dice-type">
+        <select id="dice-count" style="width: 45px;">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+        </select>
+        <select id="dice-type" class="full-width-select" style="width: 45px;">
             <option value="4">к4</option>
             <option value="6">к6</option>
             <option value="8">к8</option>
@@ -88,25 +87,43 @@
             <option value="20">к20</option>
             <option value="100">к100</option>
         </select>
-        + <input type="text" id="mod-basic" value="0" class="mod-input">
+        <label>Мод:</label>
+        <select id="mod-basic" style="width: 45px;">
+            <option value="0">0</option>
+            <option value="1">+1</option>
+            <option value="2">+2</option>
+            <option value="3">+3</option>
+            <option value="-1">-1</option>
+            <option value="-2">-2</option>
+        </select>
         <button onclick="rollBasicDice(); return false;">Бросить</button>
 
         <h3>2. Бросок Двойственности (к12 Н/С)</h3>
-        Модификатор: <input type="text" id="mod-duality" value="0" class="mod-input">
-        
+        <label>Мод:</label>
+        <select id="mod-duality" style="width: 45px;">
+            <option value="0">0</option>
+            <option value="1">+1</option>
+            <option value="2">+2</option>
+            <option value="3">+3</option>
+            <option value="-1">-1</option>
+            <option value="-2">-2</option>
+        </select>
+        <br>
         <input type="checkbox" id="advantage-check"> Преимущество
         <input type="checkbox" id="disadvantage-check"> Помеха
         <button onclick="rollDualityDice(); return false;">Бросить Двойственность</button>
     </div>
 
-    <div id="result">Ожидание Броска...</div>
+    <div id="result-box">
+        Добро пожаловать!
+    </div>
 
-    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.7-iPAQ-FINAL</div>
+    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.8-iPAQ-FINAL</div>
 
     <script type="text/javascript">
         var resultBoxDiv = document.getElementById('result-box');
         var bodyElement = document.getElementById('body');
-        var originalBodyColor = '#000'; // Черный фон по умолчанию
+        var originalBodyColor = '#000';
         
         function roll(max) {
             return Math.floor(Math.random() * max) + 1;
@@ -114,23 +131,23 @@
 
         // --- ДИСПЕТЧЕР ВЫВОДА (ТОЛЬКО ЧИСТЫЙ ТЕКСТ через innerText) ---
         function updateDisplay_i(logTextPlain, isDuality, outcomeType) {
-            // 1. Вывод результата: ИСПОЛЬЗУЕМ ТОЛЬКО .innerText 
-            // Это самый стабильный способ в старых браузерах. \n (перенос строки) может не работать, но текст должен появиться.
-            resultDiv.innerHTML = logTextPlain; 
+            // 1. Вывод результата: ИСПОЛЬЗУЕМ ТОЛЬКО .innerText
+            resultBoxDiv.innerText = logTextPlain; 
             
             // 2. Смена фона (без анимации)
             if (isDuality) {
                 var color;
                 if (outcomeType === 'CRIT') {
-                    color = '#FFFF00'; // Желтый для Крита
+                    color = '#FFFF00';
                 } else if (outcomeType === 'HOPE') {
-                    color = '#008000'; // Зеленый для Надежды
+                    color = '#008000';
                 } else if (outcomeType === 'FEAR') {
-                    color = '#FF0000'; // Красный для Страха
+                    color = '#FF0000';
+                } else {
+                    color = originalBodyColor;
                 }
                 bodyElement.style.backgroundColor = color;
             } else {
-                // Возвращаем черный фон для обычных бросков
                 bodyElement.style.backgroundColor = originalBodyColor; 
             }
         }
@@ -139,7 +156,8 @@
         function rollBasicDice() {
             var count = parseInt(document.getElementById('dice-count').value || '1');
             var type = parseInt(document.getElementById('dice-type').value);
-            var mod = parseInt(document.getElementById('mod-basic').value || '0');
+            // Изменение: получаем значение из select
+            var mod = parseInt(document.getElementById('mod-basic').value || '0'); 
             
             if (count < 1 || count > 10) count = 1; 
 
@@ -158,10 +176,11 @@
             // Чистый текст, переносы - \n
             var logTextPlain = `ОБЫЧНЫЙ БРОСОК: к${type} (${count} шт.)\nБроски: ${rolls.join('+')}\nМод: ${modSign}${mod}\nИТОГ: ${finalTotal}`;
             
-            updateDisplay_i(logTextPlain, false, null); // No Duality, No Outcome Type
+            updateDisplay_i(logTextPlain, false, null);
         }
 
         function rollDualityDice() {
+            // Изменение: получаем значение из select
             var mod = parseInt(document.getElementById('mod-duality').value || '0');
             var isAdvantage = document.getElementById('advantage-check').checked;
             var isDisadvantage = document.getElementById('disadvantage-check').checked;
@@ -196,12 +215,11 @@
             // Чистый текст, переносы - \n
             var logTextPlain = `ДВОЙСТВЕННОСТЬ (к12)\nНадежда: ${hopeRoll} / Страх: ${fearRoll}\nМод: ${modSign}${finalMod}\nИТОГ: ${finalTotal} / Исход: ${outcomeText}`;
             
-            updateDisplay_i(logTextPlain, true, outcomeType); // Duality, Outcome Type for Flash
+            updateDisplay_i(logTextPlain, true, outcomeType);
         }
 
         // --- Инициализация ---
         window.onload = function() {
-            // Логика переключения Преимущества/Помехи
             document.getElementById('advantage-check').addEventListener('change', function() {
                 if (this.checked) document.getElementById('disadvantage-check').checked = false;
             });
@@ -209,7 +227,8 @@
                 if (this.checked) document.getElementById('advantage-check').checked = false;
             });
             
-            
+            // Убедимся, что начальный текст отображается через innerText
+            resultBoxDiv.innerText = 'Добро пожаловать!';
         };
     </script>
 </body>

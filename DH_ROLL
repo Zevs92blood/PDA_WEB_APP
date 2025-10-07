@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Кубомет Daggerheart v3.1 (PRO - FINAL)</title>
+    <style>
+        /* Темная тема PRO-версии */
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            color: #E0E0E0;
+            background-color: #1e1e1e;
+            padding: 15px;
+            transition: background-color 0.4s ease-out; /* Для мягкой вспышки */
+        }
+        h1 { color: #BB86FC; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        h3 { color: #E0E0E0; margin-top: 5px; margin-bottom: 10px; }
+        .controls {
+            margin-bottom: 20px;
+            border: 1px solid #444;
+            padding: 15px;
+            background-color: #2c2c2c;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            text-align: left;
+        }
+        select, input[type="text"], button {
+            padding: 8px;
+            font-size: 16px;
+            margin: 5px 0;
+            box-sizing: border-box;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #444;
+            color: #E0E0E0;
+        }
+        input[type="text"] { width: 45px; text-align: center; }
+        select { width: 80px; }
+        .mod-input { width: 50px; }
+        button {
+            background-color: #BB86FC;
+            color: #1e1e1e;
+            border: none;
+            width: 100%;
+        }
+        /* Блок Последнего Броска */
+        #last-roll {
+            border: 2px solid #555;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #333;
+            font-size: 18px;
+            min-height: 20px;
+            border-radius: 4px;
+        }
+        /* Журнал */
+        #log-area {
+            height: 150px;
+            overflow-y: scroll;
+            border: 1px solid #444;
+            background-color: #111;
+            color: #ccc;
+            font-family: monospace;
+            font-size: 13px;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        /* Цветовые классы */
+        .hope { color: #00FF00; font-weight: bold; }
+        .fear { color: #FF0000; font-weight: bold; }
+        .crit { color: #FFFF00; font-weight: bold; }
+        .result-val { color: #FFFF00; }
+        .fancy-log-entry {
+            border-bottom: 1px dashed #333;
+            padding: 3px 0;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body id="body">
+
+    <h1>Кубомет Daggerheart v3.1 (PRO - FINAL)</h1>
+
+    <div class="controls">
+        <input type="checkbox" id="fancy-mode" checked> <label for="fancy-mode" style="color:#E0E0E0;">Сделать красиво (анимация и цвет)</label>
+
+        <h3>1. Обычный бросок</h3>
+        <span style="color:#E0E0E0;">
+        <input type="text" id="dice-count" value="1" class="mod-input">
+        <select id="dice-type">
+            <option value="4">к4</option>
+            <option value="6">к6</option>
+            <option value="8">к8</option>
+            <option value="10">к10</option>
+            <option value="12">к12</option>
+            <option value="20">к20</option>
+            <option value="100">к100</option>
+        </select>
+        + <input type="text" id="mod-basic" value="0" class="mod-input">
+        </span>
+        <button onclick="rollBasicDice()">Бросить</button>
+
+        <h3>2. Бросок Двойственности (к12 Н/С)</h3>
+        <span style="color:#E0E0E0;">
+        Модификатор: <input type="text" id="mod-duality" value="0" class="mod-input">
+        <br>
+        <input type="checkbox" id="advantage-check"> Преимущество
+        <input type="checkbox" id="disadvantage-check"> Помеха
+        </span>
+        <button onclick="rollDualityDice()">Бросить Двойственность</button>
+    </div>
+
+    <div id="last-roll">
+        Последний бросок: (нет данных)
+    </div>
+
+    <h3>Журнал (до 15 записей)</h3>
+    <div id="log-area">-- История бросков --</div>
+
+    <script type="text/javascript">
+        var logArea = document.getElementById('log-area');
+        var lastRollDiv = document.getElementById('last-roll');
+        var bodyElement = document.getElementById('body');
+        var maxLogEntries = 15;
+        var animationFrames = ['|', '/', '-', '\\'];
+        var animationInterval;
+        var ROLL_IN_PROGRESS = false;
+        var originalBodyColor = '#1e1e1e';
+
+        function roll(max) {
+            return Math.floor(Math.random() * max) + 1;
+        }
+
+        // --- ДИСПЕТЧЕР ВЫВОДА ---
+        function updateDisplay(logTextPlain, logTextHTML, isDuality, outcomeType) {
+            if (ROLL_IN_PROGRESS) return;
+            var isFancy = document.getElementById('fancy-mode').checked;
+
+            if (isFancy) {
+                // Анимация прокрутки в Last Roll. После завершения:
+                startAnimation(logTextHTML, function() {
+                    logRollFancy(logTextPlain, logTextHTML);
+                    // Вспышка фона (только для Двойственности) - запускается ПОСЛЕ анимации и логирования
+                    if (isDuality) {
+                        flashBackground(outcomeType);
+                    } else {
+                        bodyElement.style.backgroundColor = originalBodyColor;
+                    }
+                });
+            } else {
+                // Простой режим: немедленный вывод
+                logRollStable(logTextPlain);
+                bodyElement.style.backgroundColor = originalBodyColor;
+            }
+        }
+
+        // --- АНИМАЦИЯ И ФЛЭШ ---
+        function flashBackground(outcomeType) {
+            var flashColor;
+
+            if (outcomeType === 'CRIT') {
+                flashColor = '#FFFF00'; // Желтая вспышка для Крита
+            } else if (outcomeType === 'HOPE') {
+                flashColor = '#00FF00'; // Зеленая вспышка для Надежды
+            } else if (outcomeType === 'FEAR') {
+                flashColor = '#FF0000'; // Красная вспышка для Страха
+            } else {
+                return; // Не двойственность
+            }
+
+            bodyElement.style.backgroundColor = flashColor;
+
+            setTimeout(function() {
+                bodyElement.style.backgroundColor = originalBodyColor;
+            }, 400); // Медленная вспышка
+        }
+
+        function startAnimation(finalResultHTML, onComplete) {
+            ROLL_IN_PROGRESS = true;
+            var frameIndex = 0;
+            var frameCount = 0;
+            var duration = 600;
+            var startTime = Date.now();
+            var maxDots = 20;
+
+            clearInterval(animationInterval);
+
+            function animate() {
+                var symbol = animationFrames[frameIndex % animationFrames.length];
+                var dots = '';
+                for (var i = 0; i < frameCount; i++) {
+                    dots += '.';
+                }
+
+                lastRollDiv.innerHTML = 'Последний: ' + dots + symbol;
+
+                frameIndex++;
+                frameCount = (frameCount + 1) % maxDots;
+
+                if (Date.now() - startTime < duration) {
+                    animationInterval = setTimeout(animate, 50);
+                } else {
+                    lastRollDiv.innerHTML = 'Последний: ' + finalResultHTML;
+                    ROLL_IN_PROGRESS = false;
+                    if (onComplete) onComplete();
+                }
+            }
+            animate();
+        }
+
+        // Логирование в режиме Fancy (добавляет DIV-элементы)
+        function logRollFancy(logTextPlain, finalResultHTML) {
+            var newEntry = document.createElement('div');
+            newEntry.className = 'fancy-log-entry';
+            newEntry.innerHTML = finalResultHTML;
+
+            if (logArea.innerHTML.indexOf('-- История бросков --') > -1) {
+                logArea.innerHTML = '';
+            }
+
+            logArea.insertBefore(newEntry, logArea.firstChild);
+
+            while (logArea.children.length > maxLogEntries) {
+                logArea.removeChild(logArea.lastChild);
+            }
+        }
+
+        // Обновление журнала и Последнего Броска (Самый надежный способ)
+        function logRollStable(newLogEntryText) {
+            var currentLog = logArea.innerHTML;
+
+            if (currentLog.indexOf('-- История бросков --') > -1) {
+                currentLog = '';
+            }
+
+            var newLog = newLogEntryText + '<br>' + currentLog;
+
+            var logLines = newLog.split('<br>');
+            if (logLines.length > maxLogEntries) {
+                logLines = logLines.slice(0, maxLogEntries);
+            }
+
+            logArea.innerHTML = logLines.join('<br>');
+            lastRollDiv.innerHTML = 'Последний: ' + newLogEntryText;
+        }
+
+        // --- ЛОГИКА БРОСКОВ ---
+        function rollBasicDice() {
+            var count = parseInt(document.getElementById('dice-count').value || '1');
+            var type = parseInt(document.getElementById('dice-type').value);
+            var mod = parseInt(document.getElementById('mod-basic').value || '0');
+
+            if (count < 1 || count > 10) count = 1;
+
+            var totalRoll = 0;
+            var rolls = [];
+
+            for (var i = 0; i < count; i++) {
+                var result = roll(type);
+                totalRoll += result;
+                rolls.push(result);
+            }
+
+            var finalTotal = totalRoll + mod;
+            var modSign = mod >= 0 ? '+' : '';
+
+            var logTextPlain = `[${count}k${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: ${finalTotal}`;
+            var logTextHTML = `[${count}к${type}] Броски: (${rolls.join('+')}); Мод: ${modSign}${mod}; ИТОГ: <span class="result-val">${finalTotal}</span>`;
+
+            updateDisplay(logTextPlain, logTextHTML, false, null); // No Duality, No Outcome Type
+        }
+
+        function rollDualityDice() {
+            var mod = parseInt(document.getElementById('mod-duality').value || '0');
+            var isAdvantage = document.getElementById('advantage-check').checked;
+            var isDisadvantage = document.getElementById('disadvantage-check').checked;
+
+            var hopeRoll = roll(12);
+            var fearRoll = roll(12);
+            var dualityMod = 0;
+
+            if (isAdvantage && !isDisadvantage) {
+                dualityMod = roll(6);
+            } else if (isDisadvantage && !isAdvantage) {
+                dualityMod = -roll(6);
+            }
+
+            var finalTotal = hopeRoll + mod + dualityMod;
+            var finalMod = mod + dualityMod;
+            var modSign = finalMod >= 0 ? '+' : '';
+
+            var outcomeText, outcomeHTML, outcomeType;
+
+            if (hopeRoll === fearRoll) {
+                outcomeText = 'КРИТ. УСПЕХ';
+                outcomeHTML = '<span class="crit">КРИТ. УСПЕХ</span>';
+                outcomeType = 'CRIT';
+            } else if (hopeRoll > fearRoll) {
+                outcomeText = 'НАДЕЖДА';
+                outcomeHTML = '<span class="hope">НАДЕЖДА</span>';
+                outcomeType = 'HOPE';
+            } else {
+                outcomeText = 'СТРАХ';
+                outcomeHTML = '<span class="fear">СТРАХ</span>';
+                outcomeType = 'FEAR';
+            }
+
+            var logTextPlain = `Н:${hopeRoll} / С:${fearRoll} / Мод:${modSign}${finalMod} / ИТОГ:${finalTotal} / ${outcomeText}`;
+            var logTextHTML = `Н: <span class="hope">${hopeRoll}</span> / С: <span class="fear">${fearRoll}</span> / Мод: ${modSign}${finalMod} / ИТОГ: <span class="result-val">${finalTotal}</span> / Исход: ${outcomeHTML}`;
+
+            updateDisplay(logTextPlain, logTextHTML, true, outcomeType); // Duality, Outcome Type for Flash
+        }
+
+        // --- Инициализация ---
+        window.onload = function() {
+            document.getElementById('advantage-check').addEventListener('change', function() {
+                if (this.checked) document.getElementById('disadvantage-check').checked = false;
+            });
+            document.getElementById('disadvantage-check').addEventListener('change', function() {
+                if (this.checked) document.getElementById('advantage-check').checked = false;
+            });
+
+            // Начальная установка
+            lastRollDiv.innerHTML = 'Последний: <span class="hope">Успешно загружено!</span>';
+            lastRollDiv.style.borderColor = '#ffff00';
+
+            // Переключение стилей журнала
+            document.getElementById('fancy-mode').addEventListener('change', function() {
+                if (this.checked) {
+                    logArea.innerHTML = '';
+                    lastRollDiv.style.borderColor = '#ffff00';
+                    lastRollDiv.innerHTML = 'Последний: (готово)';
+                } else {
+                    logArea.innerHTML = '-- История бросков --';
+                    lastRollDiv.innerHTML = 'Последний: (нет данных)';
+                    lastRollDiv.style.borderColor = '#555';
+                    bodyElement.style.backgroundColor = originalBodyColor;
+                }
+            });
+        };
+    </script>
+</body>
+</html>

@@ -3,33 +3,33 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v4.0 (iPAQ)</title>
+    <title>Кубомет Daggerheart v4.2 (iPAQ)</title>
     <style>
-        /* Стиль, оптимизированный под iPAQ (аналог v2.6) */
+        /* Стиль, оптимизированный под iPAQ */
         body { 
-            font-family: Tahoma, sans-serif; /* Изменено на Tahoma для iPAQ */
+            font-family: Tahoma, sans-serif;
             text-align: center; 
-            color: #FFF; /* Цвет текста всего документа */
+            color: #FFF;
             background-color: #000000;
             padding: 5px;
         }
         h2 { color: #FFF; margin-bottom: 15px; font-size: 16px; }
-        /* ИЗМЕНЕНИЕ 1: Цвет заголовков блоков h3 меняем на ЧЁРНЫЙ (#000) */
         h3 { color: #000; margin-top: 10px; font-size: 14px; } 
         .controls { 
             margin-bottom: 15px; 
             border: 1px solid #AAA; 
             padding: 10px; 
-            background-color: #FFF; /* Белый фон карточки */
-            color: #333; /* Цвет текста внутри карточки */
+            background-color: #FFF;
+            color: #333;
         }
+        /* Группа ввода, используем flex для горизонтального расположения */
         .input-group { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        label { font-size: 14px; }
+        label { font-size: 14px; margin-right: 5px; }
         
-        /* Изменено на общие стили для лучшей совместимости */
+        /* Общие стили для полей ввода и кнопок */
         input[type="number"], select, button { 
             padding: 8px; 
-            font-size: 16px; 
+            font-size: 14px;
             margin: 5px 0; 
             width: 100%; 
             box-sizing: border-box; 
@@ -41,35 +41,36 @@
             background-color: #007bff; 
             color: white; 
             border: none; 
+            font-weight: bold;
         }
 
         #result-box { 
             margin-top: 20px; 
             padding: 10px; 
-            border: 2px solid #00ffff; /* Изменено на синий для контраста */
+            border: 2px solid #00ffff;
             min-height: 80px; 
-            background-color: #333; /* Темный фон для контраста */
+            background-color: #333;
         }
         
         #result-text { 
             font-size: 16px; 
             font-weight: bold;
             text-align: center;
-            color: #fff; /* Белый текст результата */
+            color: #fff;
         }
         
-        /* Стили для нового селектора кубов */
-        .dice-selector {
-            width: 70px; /* Уменьшаем ширину селектора кубов */
-            display: inline-block;
-            margin-right: 5px;
-        }
+        /* Стили для элементов "Обычного броска" - МАКЕТ 4.2 */
+        .basic-dice-selector { width: 25%; } /* Увеличено, чтобы вместить все */
+        .basic-mod-input { width: 20%; }
+        /* Новое поле ввода для количества кубов */
+        .basic-count-input { width: 20%; } 
+        .basic-label { width: 10%; text-align: right;}
         
     </style>
 </head>
 <body id="body">
 
-    <h2>Кубомет Daggerheart v4.0 (iPAQ)</h2>
+    <h2>Кубомет Daggerheart v4.2 (iPAQ)</h2>
 
     <div class="controls">
         <h3>Двойственность (к12 Н/С)</h3>
@@ -94,9 +95,13 @@
 
     <div class="controls">
         <h3>Обычный бросок</h3>
-        <div class="input-group">
-            <label for="d20-modifier_i" style="width: 30%;">Тип куба:</label>
-            <select id="dice-type" class="dice-selector" style="width: 25%;">
+        <div class="input-group" style="justify-content: space-around;">
+            
+            <label class="basic-label" for="dice-count" style="width: 15%;">Кол-во:</label>
+            <input type="number" id="dice-count" value="1" min="1" max="99" class="basic-count-input">
+            
+            <label class="basic-label" for="dice-type" style="width: 10%;">Куб:</label>
+            <select id="dice-type" class="basic-dice-selector">
                 <option value="4">к4</option>
                 <option value="6">к6</option>
                 <option value="8">к8</option>
@@ -105,10 +110,12 @@
                 <option value="20" selected>к20</option>
                 <option value="100">к100</option>
             </select>
-            <label for="d20-modifier_i" style="width: 20%;">Мод:</label>
-            <input type="number" id="d20-modifier_i" value="0" min="-99" max="99" style="width: 25%;">
+            
+            <label class="basic-label" for="d20-modifier_i" style="width: 10%;">Мод:</label>
+            <input type="number" id="d20-modifier_i" value="0" min="-99" max="99" class="basic-mod-input">
         </div>
-        <button onclick="rollBasicDice()">Бросить</button> </div>
+        <button onclick="rollBasicDice(); return false;">Бросить</button>
+    </div>
     
     <div id="result-box">
         <div id="result-text">
@@ -116,7 +123,7 @@
         </div>
     </div>
 
-    <div style="font-size: 10px; color: #999; margin-top: 15px; text-align: right;">Версия: v4.0-iPAQ</div>
+    <div style="font-size: 10px; color: #999; margin-top: 15px; text-align: right;">Версия: v4.2-iPAQ</div>
 
     <script>
         // --- УТИЛИТЫ ---
@@ -151,14 +158,12 @@
             
             getElement('result-text').innerHTML = 'Бросаем к12...';
 
-            // Логика двойного броска для Надежды/Страха
             var roll1 = roll(12);
             var roll2 = roll(12);
             
             var successRoll = roll1;
             var stressRoll = roll2;
 
-            // Логика Преимущества/Помехи, влияющая на присвоение Н/С
             if (adv && !dis) {
                 successRoll = Math.max(roll1, roll2);
                 stressRoll = Math.min(roll1, roll2); 
@@ -166,7 +171,6 @@
                 successRoll = Math.min(roll1, roll2);
                 stressRoll = Math.max(roll1, roll2);
             }
-            // Если и то, и то, или ничего - используем roll1 как Надежду, roll2 как Страх
 
             var finalSuccess = successRoll + mod;
             
@@ -184,7 +188,7 @@
                 outcomeType = 'FEAR';
             }
 
-            // ИЗМЕНЕНИЕ 3: Формат вывода для Дуализма
+            // Формат вывода: Н: 5 / С: 5 / Мод: +0 / ИТОГ: 5 / Исход: КРИТ. УСПЕХ
             var resultHTML = 
                 'Н: ' + successRoll + ' / С: ' + stressRoll + 
                 ' / Мод: ' + (mod >= 0 ? '+' : '') + mod + 
@@ -194,25 +198,35 @@
             updateBackground_i(outcomeType); 
             
             getElement('result-text').innerHTML = resultHTML;
-            return false; // Добавлено, чтобы избежать перезагрузки
+            return false;
         }
 
         // --- ОБЫЧНЫЙ БРОСОК (кD) ---
         function rollBasicDice() {
-            // Получаем тип куба из нового селектора
+            var count = parseInt(getElement('dice-count').value || '1');
             var type = parseInt(getElement('dice-type').value);
             var mod = parseInt(getElement('d20-modifier_i').value || '0');
             
-            getElement('result-text').innerHTML = 'Бросаем к' + type + '...';
+            // Защита от 0 или отрицательного количества кубов
+            if (count < 1) count = 1;
 
-            var rollValue = roll(type);
-            var total = rollValue + mod;
+            getElement('result-text').innerHTML = 'Бросаем ' + count + 'к' + type + '...';
 
+            var totalRoll = 0;
+            var rolls = [];
+            
+            for (var i = 0; i < count; i++) {
+                var rollValue = roll(type); 
+                totalRoll += rollValue;
+                rolls.push(rollValue);
+            }
+            
+            var total = totalRoll + mod;
             var modSign = mod >= 0 ? '+' : '';
 
-            // ИЗМЕНЕНИЕ 4: Формат вывода для Обычного броска (1кD)
+            // Формат вывода: [1к20] Броски: (2); Мод: +0; ИТОГ: 2
             var resultHTML = 
-                '[1к' + type + '] Броски: (' + rollValue + ');' +
+                '[' + count + 'к' + type + '] Броски: (' + rolls.join('+') + ');' +
                 ' Мод: ' + modSign + mod + ';' +
                 ' ИТОГ: ' + total;
 

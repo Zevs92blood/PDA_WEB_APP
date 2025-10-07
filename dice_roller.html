@@ -1,238 +1,177 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=windows-1251"> 
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v3.8.1 (iPAQ)</title>
+    <title>Кубомет Daggerheart v1.0 (iPAQ)</title>
     <style>
-        body {
-            font-family: Tahoma, sans-serif;
-            font-size: 14px;
-            background-color: #000;
-            color: #fff;
-            margin: 0;
-            padding: 5px;
-        }
-        h1 {
-            font-size: 16px;
-            color: #00ffff;
-            text-align: center;
-            border-bottom: 1px solid #00ffff;
-            padding-bottom: 5px;
-            margin-bottom: 5px;
-        }
-        h3 {
-            font-size: 14px;
-            color: #000;
-            margin: 5px 0;
-        }
-        .controls {
-            padding: 5px;
-            border: 1px solid #AAA; 
-            margin-bottom: 10px;
-            background-color: #FFF; 
-            color: #000;
-        }
-        label, select, button, input[type="checkbox"] {
-            display: inline-block;
-            padding: 4px;
-            margin: 3px 1px;
-            font-size: 13px; 
-            border: 1px solid #777;
-            box-sizing: border-box;
-            background-color: #FFF;
-            color: #000;
-        }
-        select { width: 45px; text-align: center; } /* Уменьшено для селекторов */
-        .full-width-select { width: 98%; }
-        button {
-            background-color: #007bff;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            width: 98%; 
-            margin-top: 5px;
-        }
-        #result-box {
-            border: 2px solid #00ffff; 
-            padding: 10px;
-            margin-bottom: 10px;
-            background-color: #333; 
-            min-height: 40px;
+        /* Стиль, оптимизированный под iPAQ (аналог v2.6) */
+        body { 
+            font-family: sans-serif; 
             text-align: center; 
-            color: #fff;
-            font-size: 16px;
-            font-weight: bold;
+            color: #333; 
+            background-color: #000000; /* Исходный черный фон */
+            padding: 5px;
         }
-        .hidden { display: none; }
+        h2 { color: #FFF; margin-bottom: 15px; }
+        h3 { color: #EEE; margin-top: 10px; }
+        .controls { 
+            margin-bottom: 15px; 
+            border: 1px solid #AAA; 
+            padding: 10px; 
+            background-color: #FFF; 
+        }
+        .input-group { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        label { font-size: 14px; }
+        input[type="number"], button { 
+            padding: 8px; 
+            font-size: 16px; 
+            margin: 5px 0; 
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+        input[type="number"] { width: 50px; text-align: center; }
+        button { 
+            cursor: pointer; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+        }
+
+        #result-box { 
+            margin-top: 20px; 
+            padding: 10px; 
+            border: 2px solid #333; 
+            min-height: 80px; 
+            background-color: #DDD; 
+        }
+        
+        #result-text { 
+            font-size: 16px; 
+            font-weight: bold;
+            text-align: center;
+        }
     </style>
 </head>
 <body id="body">
 
-    <h1>Кубомет Daggerheart v3.8.2 (iPAQ)</h1>
+    <h2>Кубомет Daggerheart v1.0 (iPAQ)</h2>
 
     <div class="controls">
-        <h3>1. Обычный бросок</h3>
-        <select id="dice-count" style="width: 45px;">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-        </select>
-        <select id="dice-type" class="full-width-select" style="width: 45px;">
-            <option value="4">к4</option>
-            <option value="6">к6</option>
-            <option value="8">к8</option>
-            <option value="10">к10</option>
-            <option value="12">к12</option>
-            <option value="20">к20</option>
-            <option value="100">к100</option>
-        </select>
-        <label>Мод:</label>
-        <select id="mod-basic" style="width: 45px;">
-            <option value="0">0</option>
-            <option value="1">+1</option>
-            <option value="2">+2</option>
-            <option value="3">+3</option>
-            <option value="-1">-1</option>
-            <option value="-2">-2</option>
-        </select>
-        <button onclick="rollBasicDice(); return false;">Бросить</button>
+        <h3>Двойственность (к12 Н/С)</h3>
+        <div class="input-group">
+            <label for="modifier_i">Модификатор:</label>
+            <input type="number" id="modifier_i" value="0" min="-99" max="99">
+        </div>
 
-        <h3>2. Бросок Двойственности (к12 Н/С)</h3>
-        <label>Мод:</label>
-        <select id="mod-duality" style="width: 45px;">
-            <option value="0">0</option>
-            <option value="1">+1</option>
-            <option value="2">+2</option>
-            <option value="3">+3</option>
-            <option value="-1">-1</option>
-            <option value="-2">-2</option>
-        </select>
-        <br>
-        <input type="checkbox" id="advantage-check"> Преимущество
-        <input type="checkbox" id="disadvantage-check"> Помеха
-        <button onclick="rollDualityDice(); return false;">Бросить Двойственность</button>
+        <div class="input-group" style="justify-content: space-around;">
+            <div>
+                <label for="advantage_i">Преимущество</label>
+                <input type="checkbox" id="advantage_i">
+            </div>
+            <div>
+                <label for="disadvantage_i">Помеха</label>
+                <input type="checkbox" id="disadvantage_i">
+            </div>
+        </div>
+        
+        <button onclick="rollDuality_i()">Бросить Двойственность</button>
     </div>
 
+    <div class="controls">
+        <h3>Удача (к20)</h3>
+        <div class="input-group">
+            <label for="d20-modifier_i">Модификатор:</label>
+            <input type="number" id="d20-modifier_i" value="0" min="-99" max="99">
+        </div>
+        <button onclick="rollFortune_i()">Бросить Удачу</button>
+    </div>
+    
     <div id="result-box">
         <div id="result-text">
             Добро пожаловать!
         </div>
     </div>
 
-    <div style="font-size: 10px; color: #555; margin-top: 5px; text-align: right;">v3.8-iPAQ-FINAL</div>
+    <div style="font-size: 10px; color: #999; margin-top: 15px; text-align: right;">Версия: v1.0-iPAQ</div>
 
-    <script type="text/javascript">
-        var resultBoxDiv = document.getElementById('result-text');
-        var bodyElement = document.getElementById('body');
-        var originalBodyColor = '#000';
-        
-        function roll(max) {
-            return Math.floor(Math.random() * max) + 1;
+    <script>
+        // --- УТИЛИТЫ ---
+        function getElement(id) {
+            return document.getElementById(id);
         }
-
-        // --- ДИСПЕТЧЕР ВЫВОДА (ТОЛЬКО ЧИСТЫЙ ТЕКСТ через innerText) ---
-        function updateDisplay_i(logTextPlain, isDuality, outcomeType) {
-            // 1. Вывод результата: ИСПОЛЬЗУЕМ ТОЛЬКО .innerText
-            resultBoxDiv.innerText = logTextPlain; 
-            getElement('result-text').innerHTML = resultHTML;
-            
-            // 2. Смена фона (без анимации)
+        
+        // Окрашивание фона (без анимации)
+        function updateBackground_i(isSuccess, isDuality) {
+            var color;
             if (isDuality) {
-                var color;
-                if (outcomeType === 'CRIT') {
-                    color = '#FFFF00';
-                } else if (outcomeType === 'HOPE') {
-                    color = '#008000';
-                } else if (outcomeType === 'FEAR') {
-                    color = '#FF0000';
-                } else {
-                    color = originalBodyColor;
-                }
-                bodyElement.style.backgroundColor = color;
+                // Если Двойственность (к12)
+                color = isSuccess ? '#008000' : '#FF0000'; // Зеленый или Красный
             } else {
-                bodyElement.style.backgroundColor = originalBodyColor; 
+                // Если Удача (к20) - черный фон
+                color = '#000000';
             }
-        }
-        
-        // --- ЛОГИКА БРОСКОВ ---
-        function rollBasicDice() {
-            var count = parseInt(document.getElementById('dice-count').value || '1');
-            var type = parseInt(document.getElementById('dice-type').value);
-            // Изменение: получаем значение из select
-            var mod = parseInt(document.getElementById('mod-basic').value || '0'); 
-            
-            if (count < 1 || count > 10) count = 1; 
-
-            var totalRoll = 0;
-            var rolls = [];
-            
-            for (var i = 0; i < count; i++) {
-                var result = roll(type); 
-                totalRoll += result;
-                rolls.push(result);
-            }
-            
-            var finalTotal = totalRoll + mod;
-            var modSign = mod >= 0 ? '+' : '';
-            
-            // Чистый текст, переносы - \n
-            var logTextPlain = `ОБЫЧНЫЙ БРОСОК: к${type} (${count} шт.)\nБроски: ${rolls.join('+')}\nМод: ${modSign}${mod}\nИТОГ: ${finalTotal}`;
-            
-            //updateDisplay_i(logTextPlain, false, null);
+            getElement('body').style.backgroundColor = color;
         }
 
-        function rollDualityDice() {
-            // Изменение: получаем значение из select
-            var mod = parseInt(document.getElementById('mod-duality').value || '0');
-            var isAdvantage = document.getElementById('advantage-check').checked;
-            var isDisadvantage = document.getElementById('disadvantage-check').checked;
-
-            var hopeRoll = roll(12);
-            var fearRoll = roll(12);
-            var dualityMod = 0;
+        // --- DUALITY (к12 Н/С) для iPAQ ---
+        function rollDuality_i() {
+            var mod = parseInt(getElement('modifier_i').value || '0');
+            var adv = getElement('advantage_i').checked;
+            var dis = getElement('disadvantage_i').checked;
             
-            if (isAdvantage && !isDisadvantage) {
-                dualityMod = roll(6);
-            } else if (isDisadvantage && !isAdvantage) {
-                dualityMod = -roll(6);
+            getElement('result-text').innerHTML = 'Бросаем к12...';
+
+            var roll1 = Math.floor(Math.random() * 12) + 1;
+            var roll2 = Math.floor(Math.random() * 12) + 1;
+            
+            var successRoll = roll1;
+            var stressRoll = roll2;
+
+            if (adv && !dis) {
+                successRoll = Math.max(roll1, roll2);
+                stressRoll = Math.min(roll1, roll2); 
+            } else if (dis && !adv) {
+                successRoll = Math.min(roll1, roll2);
+                stressRoll = Math.max(roll1, roll2);
             }
 
-            var finalTotal = hopeRoll + mod + dualityMod; 
-            var finalMod = mod + dualityMod;
-            var modSign = finalMod >= 0 ? '+' : '';
-            
-            var outcomeText, outcomeType;
+            var finalSuccess = successRoll + mod;
+            var finalStress = stressRoll;
 
-            if (hopeRoll === fearRoll) {
-                outcomeText = 'КРИТ. УСПЕХ';
-                outcomeType = 'CRIT';
-            } else if (hopeRoll > fearRoll) {
-                outcomeText = 'НАДЕЖДА';
-                outcomeType = 'HOPE';
-            } else { 
-                outcomeText = 'СТРАХ';
-                outcomeType = 'FEAR';
-            }
+            var resultHTML = 
+                '**Двойственность (к12):**' +
+                '<br>Успех: ' + finalSuccess + ' (к12:' + successRoll + ' + ' + mod + ')' +
+                '<br>Стресс: ' + finalStress + ' (к12:' + stressRoll + ')';
+
+            var isSuccess = finalSuccess >= 7;
+
+            // Обновляем фон (к12 броски)
+            updateBackground_i(isSuccess, true); 
             
-            // Чистый текст, переносы - \n
-            var logTextPlain = `ДВОЙСТВЕННОСТЬ (к12)\nНадежда: ${hopeRoll} / Страх: ${fearRoll}\nМод: ${modSign}${finalMod}\nИТОГ: ${finalTotal} / Исход: ${outcomeText}`;
-            
-            updateDisplay_i(logTextPlain, true, outcomeType);
+            getElement('result-text').innerHTML = resultHTML;
         }
 
-        // --- Инициализация ---
-        window.onload = function() {
-            document.getElementById('advantage-check').addEventListener('change', function() {
-                if (this.checked) document.getElementById('disadvantage-check').checked = false;
-            });
-            document.getElementById('disadvantage-check').addEventListener('change', function() {
-                if (this.checked) document.getElementById('advantage-check').checked = false;
-            });
+        // --- FORTUNE (к20) для iPAQ ---
+        function rollFortune_i() {
+            var mod = parseInt(getElement('d20-modifier_i').value || '0');
+            getElement('result-text').innerHTML = 'Бросаем к20...';
+
+            var roll = Math.floor(Math.random() * 20) + 1;
+            var total = roll + mod;
+
+            var resultHTML = 
+                '**Удача (к20):**' +
+                '<br>Результат: ' + total + ' (к20:' + roll + ' + ' + mod + ')';
+
+            var isSuccess = roll >= 11;
+
+            // Обновляем фон (к20 броски) - всегда черный фон
+            updateBackground_i(isSuccess, false); 
             
-            // Убедимся, что начальный текст отображается через innerText
-            resultBoxDiv.innerText = 'Добро пожаловать!';
-        };
+            getElement('result-text').innerHTML = resultHTML;
+        }
     </script>
 </body>
 </html>

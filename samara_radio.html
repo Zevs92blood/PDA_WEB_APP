@@ -2,30 +2,32 @@
 <html>
 <head>
     <meta charset="Windows-1251">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Самара Максимум Retro Player</title>
+    <title>JS Force Stream</title>
     <style>
         body { 
             font-family: Tahoma, sans-serif; 
             font-size: 16px; 
-            background-color: #2e2e2e; 
+            background-color: #333333; 
             color: #ffffff;
             text-align: center;
             margin: 0;
             padding: 20px;
         }
         h1 {
-            font-size: 20px;
-            color: #ff9900;
-            margin-bottom: 30px;
+            font-size: 18px;
+            color: #ff5722; /* Оранжевый */
+            margin-bottom: 20px;
         }
-        .stream-link {
-            display: block;
-            margin-top: 50px;
+        #status {
+            margin-top: 30px;
+            padding: 10px;
+            border: 1px solid #777;
+            font-size: 14px;
+            background-color: #444;
         }
-        .stream-link a {
+        .action-link a {
             padding: 15px 30px;
-            background-color: #d9534f;
+            background-color: #2196F3; /* Синий */
             color: white;
             text-decoration: none;
             border-radius: 5px;
@@ -33,27 +35,42 @@
             font-weight: bold;
             display: inline-block;
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        }
-        .info {
-            margin-top: 40px;
-            font-size: 14px;
-            color: #aaaaaa;
+            margin-top: 30px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Самара Максимум (104.3 FM)</h1>
+    <h1>MP3 через JS-перенаправление</h1>
     
-    <div class="stream-link">
-        <a href="http://193.219.125.89:8000/listen.pls">
-            Запустить эфир
+    <div id="status">
+        Нажмите "Запуск" для форсирования плеера.
+    </div>
+
+    <div class="action-link">
+        <a href="#" onclick="startStream(); return false;">
+            🚀 Запуск Потока
         </a>
     </div>
 
+    <script type="text/javascript">
+        // Переменная со ссылкой на рабочий MP3-файл
+        var mp3Url = 'https://allods.ru/media/mp3/5fc0f46635a27.mp3';
+
+        function startStream() {
+            // 1. Обновляем статус
+            document.getElementById('status').innerHTML = 'Попытка запустить внешний плеер через 0.5 сек...';
+            
+            // 2. Используем setTimeout для форсированного перехода
+            setTimeout(function() {
+                // Прямое присвоение URL должно инициировать обработку Windows Mobile
+                window.location.href = mp3Url; 
+            }, 500); // Задержка в 500 миллисекунд
+        }
+    </script>
+
     <div class="info">
-        <p>Нажмите, чтобы передать ссылку медиаплееру iPAQ.</p>
-        <p>Если возникнет ошибка, проверьте подключение Wi-Fi/GPRS.</p>
+        <p>Если это не запустит внешний плеер, значит, Opera Mini / Windows Mobile жестко игнорирует потоковый протокол для MP3.</p>
     </div>
 
 </body>

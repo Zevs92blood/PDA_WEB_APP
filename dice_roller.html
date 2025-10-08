@@ -3,9 +3,9 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v4.2.3 (iPAQ)</title>
+    <title>Кубомет Daggerheart v4.2.4 (iPAQ)</title>
     <style>
-        /* Стиль, оптимизированный под iPAQ */
+        /* Стиль, оптимизированный под iPAQ (240x320) */
         body { 
             font-family: Tahoma, sans-serif;
             text-align: center; 
@@ -83,7 +83,7 @@
 </head>
 <body id="body">
 
-    <h2>Кубомет Daggerheart v4.2.3 (iPAQ)</h2>
+    <h2>Кубомет Daggerheart v4.2.4 (iPAQ)</h2>
 
     <div class="controls">
         <h3>Двойственность (к12 Н/С)</h3>
@@ -101,7 +101,7 @@
                 <label for="disadvantage_i">Помеха</label>
                 <input type="checkbox" id="disadvantage_i">
             </div>
-        </div> 
+        </div>
         
         <button onclick="rollDuality_i(); return false;">Бросить Двойственность</button>
     </div>
@@ -141,7 +141,7 @@
         </div>
     </div>
 
-    <div style="font-size: 10px; color: #999; margin-top: 15px; text-align: right;">Версия: v4.2.1-iPAQ</div>
+    <div style="font-size: 10px; color: #999; margin-top: 15px; text-align: right;">Версия: v4.2.4-iPAQ</div>
 
     <script>
         // --- УТИЛИТЫ ---
@@ -169,38 +169,40 @@
         }
 
         // --- DUALITY (к12 Н/С) ---
+        // ФИНАЛЬНЫЙ ФИКС: Преимущество/Помеха - это чистый +/- d6 к общему ИТОГУ.
         function rollDuality_i() {
-            var mod = parseInt(getElement('modifier_i').value || '0');
+            var mod = parseInt(getElement('modifier_i').value || '0'); // Базовый мод
             var adv = getElement('advantage_i').checked;
             var dis = getElement('disadvantage_i').checked;
             
             getElement('result-text').innerHTML = 'Бросаем к12...';
 
-            var roll1 = roll(12);
-            var roll2 = roll(12);
+            var hopeRoll = roll(12); // Куб Надежды
+            var fearRoll = roll(12); // Куб Страха
             
-            var successRoll = roll1;
-            var stressRoll = roll2;
+            var dualityBonus = 0;    // Модификатор от Преимущества/Помехи (+/- d6)
 
-            var dualityBonus = 0;
-
+            // Расчет Бонуса Двойственности (+/- d6), который добавляется к ИТОГУ
             if (adv && !dis) {
                 dualityBonus = roll(6); // +d6 к ИТОГУ (Преимущество)
             } else if (dis && !adv) {
                 dualityBonus = -roll(6); // -d6 от ИТОГА (Помеха)
             }
-
-            // ИТОГ: Hope Roll + Fear Roll + Базовый Модификатор + Бонус Двойственности
-            var finalTotal = successRoll + stressRoll + mod + dualityBonus;
             
+            // ИТОГ: Hope Roll + Fear Roll + Базовый Мод + Бонус Двойственности
+            var finalTotal = hopeRoll + fearRoll + mod + dualityBonus;
             
+            // 'Мод' в выводе - это сумма Базового Мода и Бонуса Двойственности
+            var totalMod = mod + dualityBonus; // <--- ИСПРАВЛЕНО
+            
+            // Исход (Outcome): Сравнение Hope Roll vs Fear Roll (без модификаторов)
             var outcomeText;
             var outcomeType;
             
-            if (successRoll === stressRoll) {
+            if (hopeRoll === fearRoll) {
                 outcomeText = 'КРИТ. УСПЕХ';
                 outcomeType = 'CRIT';
-            } else if (successRoll > stressRoll) {
+            } else if (hopeRoll > fearRoll) {
                 outcomeText = 'НАДЕЖДА';
                 outcomeType = 'HOPE';
             } else {
@@ -210,7 +212,7 @@
 
             // Формат вывода: Н: 5 / С: 5 / Мод: +0 / ИТОГ: 5 / Исход: КРИТ. УСПЕХ
             var resultHTML = 
-                'Н: ' + successRoll + ' / С: ' + stressRoll + 
+                'Н: ' + hopeRoll + ' / С: ' + fearRoll + 
                 ' / Мод: ' + (totalMod >= 0 ? '+' : '') + totalMod + 
                 ' / ИТОГ: ' + finalTotal + 
                 ' / Исход: ' + outcomeText;
@@ -259,17 +261,11 @@
         // --- Инициализация ---
         window.onload = function() {
             // Логика переключения Преимущества/Помехи
-
             getElement('advantage_i').addEventListener('change', function() {
-
                 if (this.checked) getElement('disadvantage_i').checked = false;
-
             });
-
             getElement('disadvantage_i').addEventListener('change', function() {
-
                 if (this.checked) getElement('advantage_i').checked = false;
-
             });
         };
     </script>

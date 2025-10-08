@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v3.1 (PRO - FINAL)</title>
+    <title>Кубомет Daggerheart v4.3 (PRO - FINAL)</title>
     <style>
         /* Темная тема PRO-версии */
         body {
@@ -25,7 +25,8 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             text-align: left;
         }
-        select, input[type="text"], button {
+        /* УНИФИЦИРОВАННЫЙ СТИЛЬ ВВОДА */
+        select, input[type="number"], button {
             padding: 8px;
             font-size: 16px;
             margin: 5px 0;
@@ -35,8 +36,9 @@
             background-color: #444;
             color: #E0E0E0;
         }
-        input[type="text"] { width: 45px; text-align: center; }
-        select { width: 80px; }
+        /* Исправление: input type="number" вместо text */
+        input[type="number"] { width: 50px; text-align: center; } 
+        .wide-select { width: 90px; }
         .mod-input { width: 50px; }
         button {
             background-color: #BB86FC;
@@ -53,6 +55,7 @@
             font-size: 18px;
             min-height: 20px;
             border-radius: 4px;
+            text-align: center; /* Центрируем результат */
         }
         /* Журнал */
         #log-area {
@@ -76,38 +79,59 @@
             padding: 3px 0;
             white-space: nowrap;
         }
+        .input-group { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            margin-bottom: 10px;
+        }
+        .input-group label {
+            color: #E0E0E0;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body id="body">
 
-    <h1>Кубомет Daggerheart v3.1 (PRO - FINAL)</h1>
-
+    <h1>Кубомет Daggerheart v4.3 (PRO - FINAL)</h1>
+    
     <div class="controls">
         <input type="checkbox" id="fancy-mode" checked> <label for="fancy-mode" style="color:#E0E0E0;">Сделать красиво (анимация и цвет)</label>
 
         <h3>1. Обычный бросок</h3>
-        <span style="color:#E0E0E0;">
-        <input type="text" id="dice-count" value="1" class="mod-input">
-        <select id="dice-type">
-            <option value="4">к4</option>
-            <option value="6">к6</option>
-            <option value="8">к8</option>
-            <option value="10">к10</option>
-            <option value="12">к12</option>
-            <option value="20">к20</option>
-            <option value="100">к100</option>
-        </select>
-        + <input type="text" id="mod-basic" value="0" class="mod-input">
-        </span>
+        
+        <div class="input-group" style="justify-content: flex-start; gap: 10px;">
+            <input type="number" id="dice-count" value="1" min="1" max="99" class="mod-input">
+            <select id="dice-type" class="wide-select">
+                <option value="4">к4</option>
+                <option value="6">к6</option>
+                <option value="8">к8</option>
+                <option value="10">к10</option>
+                <option value="12">к12</option>
+                <option value="20" selected>к20</option>
+                <option value="100">к100</option>
+            </select>
+            <span style="color:#E0E0E0;">+</span> 
+            <input type="number" id="mod-basic" value="0" class="mod-input">
+        </div>
         <button onclick="rollBasicDice()">Бросить</button>
 
         <h3>2. Бросок Двойственности (к12 Н/С)</h3>
-        <span style="color:#E0E0E0;">
-        Модификатор: <input type="text" id="mod-duality" value="0" class="mod-input">
-        <br>
-        <input type="checkbox" id="advantage-check"> Преимущество
-        <input type="checkbox" id="disadvantage-check"> Помеха
-        </span>
+        
+        <div class="input-group">
+            <label for="mod-duality">Базовый Модификатор:</label> 
+            <input type="number" id="mod-duality" value="0" class="mod-input" style="width: 50px;">
+        </div>
+
+        <div style="color:#E0E0E0; display: flex; justify-content: space-around; margin-bottom: 10px;">
+            <label>
+                <input type="checkbox" id="advantage-check"> Преимущество
+            </label>
+            <label>
+                <input type="checkbox" id="disadvantage-check"> Помеха
+            </label>
+        </div>
+        
         <button onclick="rollDualityDice()">Бросить Двойственность</button>
     </div>
 
@@ -245,13 +269,13 @@
             lastRollDiv.innerHTML = 'Последний: ' + newLogEntryText;
         }
 
-        // --- ЛОГИКА БРОСКОВ ---
+        // --- 1. ЛОГИКА ОБЫЧНОГО БРОСКА ---
         function rollBasicDice() {
             var count = parseInt(document.getElementById('dice-count').value || '1');
             var type = parseInt(document.getElementById('dice-type').value);
             var mod = parseInt(document.getElementById('mod-basic').value || '0');
 
-            if (count < 1 || count > 10) count = 1;
+            if (count < 1) count = 1;
 
             var totalRoll = 0;
             var rolls = [];
@@ -271,27 +295,30 @@
             updateDisplay(logTextPlain, logTextHTML, false, null); // No Duality, No Outcome Type
         }
 
+        // --- 2. ЛОГИКА ДВОЙСТВЕННОСТИ (Daggerheart) ---
         function rollDualityDice() {
-            var mod = parseInt(document.getElementById('mod-duality').value || '0');
+            var mod = parseInt(document.getElementById('mod-duality').value || '0'); // Базовый мод
             var isAdvantage = document.getElementById('advantage-check').checked;
             var isDisadvantage = document.getElementById('disadvantage-check').checked;
 
-            var hopeRoll = roll(12);
-            var fearRoll = roll(12);
-            var dualityMod = 0;
+            var hopeRoll = roll(12); // Куб Надежды
+            var fearRoll = roll(12); // Куб Страха
+            
+            var dualityBonus = 0;    // Модификатор от Преимущества/Помехи (+/- d6)
 
+            // Расчет Бонуса Двойственности (+/- d6), который добавляется к ИТОГУ
             if (isAdvantage && !isDisadvantage) {
-                dualityMod = roll(6);
+                dualityBonus = roll(6); // +d6 к ИТОГУ (Преимущество)
             } else if (isDisadvantage && !isAdvantage) {
-                dualityMod = -roll(6);
+                dualityBonus = -roll(6); // -d6 от ИТОГА (Помеха)
             }
-
-            var finalTotal = hopeRoll + mod + dualityMod;
-            var finalMod = mod + dualityMod;
-            var modSign = finalMod >= 0 ? '+' : '';
-
+            
+            // ИТОГ: Hope Roll + Fear Roll + Базовый Модификатор + Бонус Двойственности
+            var finalTotal = hopeRoll + fearRoll + mod + dualityBonus;
+            
+            // Исход (Outcome): Сравнение Hope Roll vs Fear Roll (без модификаторов)
             var outcomeText, outcomeHTML, outcomeType;
-
+            
             if (hopeRoll === fearRoll) {
                 outcomeText = 'КРИТ. УСПЕХ';
                 outcomeHTML = '<span class="crit">КРИТ. УСПЕХ</span>';
@@ -306,14 +333,19 @@
                 outcomeType = 'FEAR';
             }
 
-            var logTextPlain = `Н:${hopeRoll} / С:${fearRoll} / Мод:${modSign}${finalMod} / ИТОГ:${finalTotal} / ${outcomeText}`;
-            var logTextHTML = `Н: <span class="hope">${hopeRoll}</span> / С: <span class="fear">${fearRoll}</span> / Мод: ${modSign}${finalMod} / ИТОГ: <span class="result-val">${finalTotal}</span> / Исход: ${outcomeHTML}`;
+            // 'Мод' в выводе - это сумма Базового Мода и Бонуса Двойственности
+            var totalMod = mod + dualityBonus;
+            var modSign = totalMod >= 0 ? '+' : '';
+
+            var logTextPlain = `Н:${hopeRoll} / С:${fearRoll} / Мод:${modSign}${totalMod} / ИТОГ:${finalTotal} / Исход:${outcomeText}`;
+            var logTextHTML = `Н: <span class="hope">${hopeRoll}</span> / С: <span class="fear">${fearRoll}</span> / Мод: ${modSign}${totalMod} / ИТОГ: <span class="result-val">${finalTotal}</span> / Исход: ${outcomeHTML}`;
 
             updateDisplay(logTextPlain, logTextHTML, true, outcomeType); // Duality, Outcome Type for Flash
         }
 
         // --- Инициализация ---
         window.onload = function() {
+            // Логика переключения Преимущества/Помехи
             document.getElementById('advantage-check').addEventListener('change', function() {
                 if (this.checked) document.getElementById('disadvantage-check').checked = false;
             });

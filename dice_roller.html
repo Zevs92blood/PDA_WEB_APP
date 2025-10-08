@@ -83,7 +83,7 @@
 </head>
 <body id="body">
 
-    <h2>Кубомет Daggerheart v4.2.1 (iPAQ)</h2>
+    <h2>Кубомет Daggerheart v4.2.2 (iPAQ)</h2>
 
     <div class="controls">
         <h3>Двойственность (к12 Н/С)</h3>
@@ -92,16 +92,7 @@
             <input type="number" id="modifier_i" value="0" min="-99" max="99" style="width: 55%;">
         </div>
 
-        <div class="input-group" style="justify-content: space-around;">
-            <div>
-                <label for="advantage_i">Преимущество</label>
-                <input type="checkbox" id="advantage_i">
-            </div>
-            <div>
-                <label for="disadvantage_i">Помеха</label>
-                <input type="checkbox" id="disadvantage_i">
-            </div>
-        </div>
+       
         
         <button onclick="rollDuality_i(); return false;">Бросить Двойственность</button>
     </div>
@@ -171,8 +162,8 @@
         // --- DUALITY (к12 Н/С) ---
         function rollDuality_i() {
             var mod = parseInt(getElement('modifier_i').value || '0');
-            var adv = getElement('advantage_i').checked;
-            var dis = getElement('disadvantage_i').checked;
+            //var adv = getElement('advantage_i').checked;
+            //var dis = getElement('disadvantage_i').checked;
             
             getElement('result-text').innerHTML = 'Бросаем к12...';
 
@@ -190,7 +181,8 @@
                 stressRoll = Math.max(roll1, roll2);
             }
 
-            var finalSuccess = successRoll + mod;
+            var finalSuccess = successRoll + stressRoll + mod;
+            
             
             var outcomeText;
             var outcomeType;

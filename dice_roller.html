@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Кубомет Daggerheart v4.2.1 (iPAQ)</title>
+    <title>Кубомет Daggerheart v4.2.3 (iPAQ)</title>
     <style>
         /* Стиль, оптимизированный под iPAQ */
         body { 
@@ -83,7 +83,7 @@
 </head>
 <body id="body">
 
-    <h2>Кубомет Daggerheart v4.2.2 (iPAQ)</h2>
+    <h2>Кубомет Daggerheart v4.2.3 (iPAQ)</h2>
 
     <div class="controls">
         <h3>Двойственность (к12 Н/С)</h3>
@@ -92,7 +92,16 @@
             <input type="number" id="modifier_i" value="0" min="-99" max="99" style="width: 55%;">
         </div>
 
-       
+        <div class="input-group" style="justify-content: space-around;">
+            <div>
+                <label for="advantage_i">Преимущество</label>
+                <input type="checkbox" id="advantage_i">
+            </div>
+            <div>
+                <label for="disadvantage_i">Помеха</label>
+                <input type="checkbox" id="disadvantage_i">
+            </div>
+        </div> 
         
         <button onclick="rollDuality_i(); return false;">Бросить Двойственность</button>
     </div>
@@ -162,8 +171,8 @@
         // --- DUALITY (к12 Н/С) ---
         function rollDuality_i() {
             var mod = parseInt(getElement('modifier_i').value || '0');
-            //var adv = getElement('advantage_i').checked;
-            //var dis = getElement('disadvantage_i').checked;
+            var adv = getElement('advantage_i').checked;
+            var dis = getElement('disadvantage_i').checked;
             
             getElement('result-text').innerHTML = 'Бросаем к12...';
 
@@ -173,15 +182,16 @@
             var successRoll = roll1;
             var stressRoll = roll2;
 
+            var dualityBonus = 0;
+
             if (adv && !dis) {
-                successRoll = Math.max(roll1, roll2);
-                stressRoll = Math.min(roll1, roll2); 
+                dualityBonus = roll(6); // +d6 к ИТОГУ (Преимущество)
             } else if (dis && !adv) {
-                successRoll = Math.min(roll1, roll2);
-                stressRoll = Math.max(roll1, roll2);
+                dualityBonus = -roll(6); // -d6 от ИТОГА (Помеха)
             }
 
-            var finalSuccess = successRoll + stressRoll + mod;
+            // ИТОГ: Hope Roll + Fear Roll + Базовый Модификатор + Бонус Двойственности
+            var finalTotal = successRoll + stressRoll + mod + dualityBonus;
             
             
             var outcomeText;
@@ -201,8 +211,8 @@
             // Формат вывода: Н: 5 / С: 5 / Мод: +0 / ИТОГ: 5 / Исход: КРИТ. УСПЕХ
             var resultHTML = 
                 'Н: ' + successRoll + ' / С: ' + stressRoll + 
-                ' / Мод: ' + (mod >= 0 ? '+' : '') + mod + 
-                ' / ИТОГ: ' + finalSuccess + 
+                ' / Мод: ' + (totalMod >= 0 ? '+' : '') + totalMod + 
+                ' / ИТОГ: ' + finalTotal + 
                 ' / Исход: ' + outcomeText;
 
             updateBackground_i(outcomeType); 
@@ -248,7 +258,19 @@
 
         // --- Инициализация ---
         window.onload = function() {
-            
+            // Логика переключения Преимущества/Помехи
+
+            getElement('advantage_i').addEventListener('change', function() {
+
+                if (this.checked) getElement('disadvantage_i').checked = false;
+
+            });
+
+            getElement('disadvantage_i').addEventListener('change', function() {
+
+                if (this.checked) getElement('advantage_i').checked = false;
+
+            });
         };
     </script>
 </body>

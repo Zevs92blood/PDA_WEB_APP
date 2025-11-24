@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Новогодний Календарь Фанфары</title>
+<style>
+/* Глобальные стили */
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    font-family: 'Montserrat', sans-serif; /* Более современный шрифт */
+    background-color: #000033; /* Начальный тёмный фон */
+    transition: background-color 2s ease-in-out;
+    overflow: hidden; /* Скрыть возможные полосы прокрутки */
+}
+
+/* Анимация мерцания для шариков */
+@keyframes twinkle {
+    0% { opacity: 0.8; box-shadow: 0 0 5px rgba(255, 255, 255, 0.7); }
+    50% { opacity: 1.0; box-shadow: 0 0 15px rgba(255, 255, 255, 1); }
+    100% { opacity: 0.8; box-shadow: 0 0 5px rgba(255, 255, 255, 0.7); }
+}
+
+/* Контейнер для сообщения и кнопки */
+#calendarContainer {
+text-align: center;
+padding: 30px;
+border-radius: 15px;
+background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(240, 240, 255, 0.9));
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.5);
+z-index: 10;
+color: #333;
+max-width: 80%;
+}
+
+/* Кнопка */
+#checkButton {
+padding: 15px 40px;
+font-size: 1.3em;
+cursor: pointer;
+background: linear-gradient(to right, #e74c3c, #c0392b);
+color: white;
+border: none;
+border-radius: 50px; /* Круглая кнопка */
+box-shadow: 0 5px 15px rgba(231, 76, 60, 0.5);
+transition: all 0.3s ease;
+text-transform: uppercase;
+font-weight: bold;
+}
+
+#checkButton:hover {
+background: linear-gradient(to right, #c0392b, #e74c3c);
+transform: translateY(-2px);
+box-shadow: 0 8px 20px rgba(231, 76, 60, 0.7);
+}
+
+/* Сообщение */
+#message {
+margin-top: 25px;
+font-size: 1.5em;
+font-weight: 700;
+line-height: 1.4;
+}
+
+#message .december-title {
+color: #f1c40f; /* Золотой цвет */
+font-size: 2.5em;
+text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+animation: bounceIn 1s;
+}
+
+/* Дебаг-панель */
+#debugPanel {
+position: fixed;
+bottom: 0;
+width: 100%;
+background-color: rgba(0, 0, 0, 0.7);
+color: #f1c40f;
+padding: 10px;
+text-align: center;
+box-sizing: border-box;
+z-index: 20;
+}
+
+#debugInput {
+padding: 8px;
+font-size: 1em;
+border: 1px solid #f1c40f;
+background-color: #333;
+color: white;
+border-radius: 5px;
+width: 180px;
+text-transform: lowercase;
+text-align: center;
+}
+
+/* CANVAS */
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+</style>
+</head>
+<body>
+<canvas id="christmasTreeCanvas"></canvas>
+
+<div id="calendarContainer">
+<button id="checkButton" onclick="checkDate()">Проверить Дату и Открыть Окошко</button>
+<div id="message"></div>
+</div>
+
+<div id="debugPanel">
+<label for="debugInput">🎉 Дебаг-код: </label>
+<input type="text" id="debugInput" oninput="resetMessage()" placeholder="какоетоПоле">
+</div>
+
+<script>
+// Блок из 31 сообщения для календаря
+const dayMessages = [
+    "1 декабря: Волшебство начинается! Этот календарик только для самой лучшей женщины на свете.",
+"2 декабря: Серьёзно, тут нет защиты от чужих. Давай здоровый эгоизм)))",
+"3 декабря: Испеки праздничное имбирное печенье — Ты в этом топ.",
+"4 декабря: Я люблю тебя за невероятный уровень поддержки",
+"5 декабря: И твою красоту я тоже ценю",
+"6 декабря: Ты хорошая мама!",
+"7 декабря: И офигенный профессионал!",
+"8 декабря: С теплотой вспоминаю наши выезды на природу",
+"9 декабря: И залипания в дождь в тинихаусе с тобой, греют моё сердце",
+"10 декабря: Пора покупать мандарины! Ты достойна ящика, а то и двух",
+"11 декабря: 4 декабря я соврал, я люблю тебя без всяких но, если, за.",
+"12 декабря: Помню как мы бесились в нефтегорске валяя друг друга в снегу.",
+"13 декабря: Твой музыкальный вкус шикарен",
+"14 декабря: Твоя задница божественна",
+"15 декабря: Время выбирать самую пушистую и красивую ёлку!",
+"16 декабря: Булочка... С корицей!",
+"17 декабря: Спасибо за твоё тепло",
+"18 декабря: Наша помолвка - самая эпичная на свете. Байки можно годами травить.",
+"19 декабря: Ты моя путеводная звезда.",
+"20 декабря: Если я рядом, обнимашки по твоему требованию в любой момент",
+"21 декабря: Если я рядом, поцелуйки по твоему требованию в любой момент",
+"22 декабря: Ценю твою стойкость, правда.",
+"23 декабря: Люблю твой запах, он успокаивает.",
+"24 декабря: Салатик - наш клей",
+"25 декабря: Спасибо тебе за домашний очаг.",
+"26 декабря: Помню момент как ты угорала, когда впервые пригласила меня зайти, а я боялся прихода тёти",
+"27 декабря: Меня разрывает от твоей крутости. Буквально дилемма, когда выбор безграничен.",
+"28 декабря: Моё доверие к тебе безгранично",
+"29 декабря: Мы почти дотянули до конца года и всё благодаря тебе",
+"30 декабря: Снег там есть? Го вечером снеговика лепить?",
+"31 декабря: Новый год близко! Вот тебе ключик магии, если меня нет рядом iddqdДДММ 🎉🎄🥂"
+];
+
+const canvas = document.getElementById('christmasTreeCanvas');
+const ctx = canvas.getContext('2d');
+const body = document.body;
+const messageDiv = document.getElementById('message');
+const checkBtn = document.getElementById('checkButton');
+const debugInput = document.getElementById('debugInput');
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const { day } = getCurrentDateDetails();
+    drawScene(day);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+/**
+ * Определяет текущую дату (реальную или симулированную).
+ */
+function getCurrentDateDetails() {
+    const debugCode = debugInput.value.toLowerCase().trim();
+    const dateDetails = { day: 0, isDecember: false, debugError: '', realDay: 0, realMonth: 0 };
+
+    if (debugCode) {
+        const match = debugCode.match(/^iddqd(\d{2})(\d{2})$/);
+
+        if (match) {
+            const debugDay = parseInt(match[1], 10);
+            const debugMonth = parseInt(match[2], 10);
+
+            if (debugDay >= 1 && debugDay <= 31 && debugMonth >= 1 && debugMonth <= 12) {
+                dateDetails.realDay = debugDay;
+                dateDetails.realMonth = debugMonth;
+
+                if (debugMonth === 12) {
+                    dateDetails.day = debugDay;
+                    dateDetails.isDecember = true;
+                }
+                return dateDetails;
+            }
+        }
+        dateDetails.debugError = "Какая ты хитрая, жаль ты не знаешь пароля.";
+        return dateDetails;
+    }
+
+    const now = new Date();
+    dateDetails.realDay = now.getDate();
+    dateDetails.realMonth = now.getMonth() + 1;
+
+    if (now.getMonth() === 11) { // Декабрь (Month 11)
+        dateDetails.day = now.getDate();
+        dateDetails.isDecember = true;
+    }
+    return dateDetails;
+}
+
+// --- Функции для рисования ---
+
+/**
+ * Определяет цвет неба от 1 до 31 декабря (Голубой -> Темно-синий).
+ */
+function getSkyColor(day) {
+    if (day < 1 || day > 31) day = 1;
+
+    // H (Оттенок): 200 (Голубой) -> 220 (Синий)
+    // S (Насыщенность): 70% -> 50%
+    // L (Яркость): 70% -> 20%
+    const h = 200 + (20 * (day - 1) / 30);
+    const s = 70 - (20 * (day - 1) / 30);
+    const l = 70 - (50 * (day - 1) / 30);
+
+    const color = `hsl(${h}, ${s}%, ${l}%)`;
+    body.style.backgroundColor = color; // Меняем фон body
+    return color;
+}
+
+/**
+ * Рисует всю сцену (Небо, Снег, Ёлка).
+ */
+function drawScene(day) {
+    const W = canvas.width;
+    const H = canvas.height;
+    const treeHeight = H * 0.65; // Чуть выше
+    const treeBaseY = H * 0.95;
+    const treeCenter = W / 2;
+    const treeWidth = W * 0.20; // Чуть шире
+
+    // 1. Небо (Фон)
+    ctx.fillStyle = getSkyColor(day > 0 ? day : 1);
+    ctx.fillRect(0, 0, W, H);
+
+    // 2. Снег (Сугроб)
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.ellipse(W / 2, treeBaseY, W * 0.7, H * 0.3, 0, 0, Math.PI, true);
+    ctx.fill();
+
+    // Добавляем эффект падающего снега (простые круги, 100 шт)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    for (let i = 0; i < 100; i++) {
+        ctx.beginPath();
+        ctx.arc(Math.random() * W, Math.random() * H * 0.9, Math.random() * 2 + 1, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // 3. Ствол Ёлки
+    ctx.fillStyle = '#8B4513'; // Тёмно-коричневый
+    ctx.fillRect(treeCenter - 15, treeBaseY - treeHeight * 0.05, 30, treeHeight * 0.05);
+
+    // 4. Ёлка (Треугольник с тенями для объема)
+    const treeColor = '#27AE60';
+    ctx.fillStyle = treeColor;
+
+    // Добавляем тени, имитируя объем
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 5;
+    ctx.shadowOffsetY = 5;
+
+    ctx.beginPath();
+    ctx.moveTo(treeCenter, treeBaseY - treeHeight);
+    ctx.lineTo(treeCenter - treeWidth, treeBaseY - treeHeight * 0.05);
+    ctx.lineTo(treeCenter + treeWidth, treeBaseY - treeHeight * 0.05);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore(); // Сбрасываем тени для шариков
+
+    // 5. Звезда (Яркая, мерцающая)
+    drawStar(ctx, treeCenter, treeBaseY - treeHeight, 15, 5, '#F1C40F');
+
+    // 6. Шарики (Украшения)
+    if (day >= 1 && day <= 31) {
+        drawOrnaments(day, treeCenter, treeBaseY, treeHeight, treeWidth);
+    }
+}
+
+/**
+ * Рисует шарики на ёлке с эффектами мерцания (с помощью CSS-классов).
+ * Примечание: В Canvas мы не можем добавить CSS-класс к объекту.
+ * Мы симулируем мерцание, рисуя их с ярким свечением.
+ */
+function drawOrnaments(day, centerX, baseY, height, width) {
+    const colors = ['#E74C3C', '#3498DB', '#F1C40F', '#1ABC9C', '#9B59B6']; // Яркие цвета
+    const totalOrnaments = day;
+    const ballRadius = 8;
+
+    // Базовая Y-координата для расчета высоты ёлки (там, где начинается зеленый треугольник)
+    const treeTopY = baseY - height;
+    // Координата, где заканчивается зеленый треугольник (над пеньком)
+    const treeBaseY = baseY - height * 0.05;
+
+    for (let i = 0; i < totalOrnaments; i++) {
+        let x, y;
+        let isInside = false;
+
+        // Перезапускаем цикл, пока не найдем точку, которая ТОЧНО внутри треугольника
+        while (!isInside) {
+            // Генерируем случайное X в пределах полной ширины ёлки
+            x = centerX + (Math.random() * width * 2) - width;
+
+            // Генерируем случайное Y в пределах полной высоты ёлки (от верхушки до основания)
+            y = treeTopY + (Math.random() * (treeBaseY - treeTopY));
+
+            // --- СТРОГАЯ МАТЕМАТИЧЕСКАЯ ПРОВЕРКА ВНУТРИ ТРЕУГОЛЬНИКА ---
+
+            // 1. Дистанция по Y от верхушки ёлки:
+            const distYFromTop = y - treeTopY;
+
+            // 2. Полная высота зеленой части ёлки:
+            const actualTreeHeight = treeBaseY - treeTopY;
+
+            // 3. Вычисляем максимальную допустимую половину ширины (halfWidth)
+            //    на текущей высоте (y) с помощью подобия треугольников:
+            const maxHalfWidthAtY = width * (distYFromTop / actualTreeHeight);
+
+            // 4. Проверяем, что X-координата находится в пределах этой рассчитанной ширины
+            if (Math.abs(x - centerX) <= maxHalfWidthAtY) {
+                isInside = true;
+            }
+        }
+
+        // Теперь, когда координаты (x, y) гарантированно внутри:
+
+        ctx.fillStyle = colors[i % colors.length];
+
+        ctx.shadowColor = colors[i % colors.length];
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        ctx.beginPath();
+        ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Рисуем блик
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(x - ballRadius / 3, y - ballRadius / 3, ballRadius / 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+    }
+}
+
+/**
+ * Рисует пятиконечную звезду на верхушке ёлки.
+ */
+function drawStar(ctx, cx, cy, spikes, outerRadius, color) {
+    const innerRadius = outerRadius / 2.5;
+    let rot = Math.PI / 2 * 3;
+    let x = cx;
+    let y = cy;
+    const step = Math.PI / spikes;
+
+    ctx.fillStyle = color;
+    // Добавляем максимальное свечение для звезды
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 25;
+
+    ctx.beginPath();
+    for (let i = 0; i < spikes; i++) {
+        x = cx + Math.cos(rot) * outerRadius;
+        y = cy + Math.sin(rot) * outerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+
+        x = cx + Math.cos(rot) * innerRadius;
+        y = cy + Math.sin(rot) * innerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+    }
+    ctx.lineTo(cx, cy - outerRadius);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.shadowBlur = 0; // Сброс тени
+}
+
+
+// --- Основная логика ---
+
+function checkDate() {
+    const dateDetails = getCurrentDateDetails();
+    const { day, isDecember, debugError, realDay, realMonth } = dateDetails;
+
+    if (debugError) {
+        messageDiv.innerHTML = `<div class="december-title" style="color: #c0392b; font-size: 1.5em;">${debugError}</div>`;
+        checkBtn.style.display = 'block';
+        drawScene(0);
+        return;
+    }
+
+    if (isDecember) {
+        checkBtn.style.display = 'none';
+
+        const monthName = 'Декабря';
+        const dayMessage = dayMessages[day - 1] || "Сообщение для этой даты не найдено.";
+
+        messageDiv.innerHTML = `
+        <div class="december-title">
+        🎁 ${day} ${monthName}! 🎁
+        </div>
+        <p style="font-size: 1.1em; color: #333;">${dayMessage}</p>
+        `;
+        drawScene(day);
+
+    } else {
+        const monthNames = ["Января", "Февраля", "Марта", "Апреля", "Мая", "Июня",
+        "Июля", "Августа", "Сентября", "Октября", "Ноября", "Декабря"];
+        const currentMonthName = monthNames[realMonth - 1];
+
+        messageDiv.innerHTML = `
+        <div style="color: #34495e; font-size: 1.8em;">
+        Магия работает только в декабре! 🗓️
+        </div>
+        <div style="font-size: 1.1em; margin-top: 15px; color: #7f8c8d;">
+        Сейчас ${realDay} ${currentMonthName}. Дождись первого снега!
+        </div>
+        `;
+        checkBtn.style.display = 'block';
+        drawScene(0);
+    }
+}
+
+/** Сбрасывает сообщение и позволяет нажать кнопку снова при вводе в дебаг-поле. */
+function resetMessage() {
+    messageDiv.innerHTML = '';
+    checkBtn.style.display = 'block';
+    const { day } = getCurrentDateDetails();
+    drawScene(day);
+}
+
+// Инициализация
+window.onload = function() {
+    // Устанавливаем более современный шрифт, если доступен (для Galaxy A54)
+    document.body.style.fontFamily = 'Montserrat, sans-serif';
+    checkDate();
+};
+</script>
+</body>
+</html>

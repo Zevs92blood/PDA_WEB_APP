@@ -137,14 +137,16 @@
                                 var foundTomorrow = 0;
                                 var i;
                                 for (i = 0; i < hourly.time.length; i++) {
-                                    var hourTime = new Date(hourly.time[i]);
-                                    var h = hourTime.getHours();
+    // Создаем дату как обычно
+    var hourTime = new Date(hourly.time[i]);
     
-    // УДАЛЕНО: if (hourTime.getDate() === now.getDate() && h < currentHour) continue;
-
+    // ВАЖНО: берем час по UTC, чтобы он совпал с массивом данных API!
+    var h = hourTime.getUTCHours(); 
+    
     var isKeyHour = false;
-    for (var j = 0; j < keyHours.length; j++) {
-        if (h === keyHours[j]) {
+    var j;
+    for(j = 0; j < keyHours.length; j++){
+        if(h === keyHours[j]) {
             isKeyHour = true;
             break;
         }
@@ -155,34 +157,26 @@
         var h_pop = hourly.precipitation_probability[i];
         var h_wind = Math.round(hourly.wind_speed_10m[i]);
         var h_uv = hourly.uv_index[i];
-        
         var dayLabel = '';
+        
+        // Метки проставляем строго по UTC часам из API
         if (h === 6) dayLabel = 'Утро (6:00)';
         else if (h === 12) dayLabel = 'День (12:00)';
         else if (h === 18) dayLabel = 'Вечер (18:00)';
         else if (h === 0) dayLabel = 'Ночь (0:00)';
         
-        // Проверяем, прошло ли уже это время сегодня
-        var isPast = (hourTime.getDate() === now.getDate() && h < currentHour);
-        
         var forecastItem = 
-            '<div class="hourly-item' + (isPast ? ' past-hour' : '') + '">' +
+            '<div class="hourly-item">' +
             '<strong>' + dayLabel + '</strong>: ' +
-            (isPast ? '<span class="muted">уже прошло</span>' : 
-            h_temp + '°C, ' + h_pop + '% осад., ' + h_wind + ' м/с, УФ: ' + h_uv) +
+            h_temp + '°C, ' +
+            h_pop + '% осад., ' +
+            h_wind + ' м/с, УФ: ' + h_uv +
             '</div>';
 
-        // Сравниваем даты без риска ошибок в конце месяца
-        var isToday = hourTime.getDate() === now.getDate() && hourTime.getMonth() === now.getMonth();
-        
-        // Создаем объект завтрашней даты для точного сравнения
-        var tomorrow = new Date(now);
-        tomorrow.setDate(now.getDate() + 1);
-        var isTomorrow = hourTime.getDate() === tomorrow.getDate() && hourTime.getMonth() === tomorrow.getMonth();
-
-        if (isToday) {
+        // Для разделения на Сегодня/Завтра тоже используем UTC-день
+        if (hourTime.getUTCDate() === now.getUTCDate()) {
             todayHTML += forecastItem;
-        } else if (isTomorrow) {
+        } else if (hourTime.getUTCDate() === (now.getUTCDate() + 1)) {
             tomorrowHTML += forecastItem;
             foundTomorrow++;
         }

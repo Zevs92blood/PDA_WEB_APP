@@ -39,7 +39,7 @@
     <div id="result">Ожидание данных...</div>
     <div id="aqi-result"></div>
     
-    <div class="version">Версия: 2.6 (ФИНАЛЬНАЯ: Максимальная стабильность)</div>
+    <div class="version">Версия: 2.6.1 (ФИНАЛЬНАЯ: Максимальная стабильность)</div>
 
     <script>
         var LOCATIONS = {
@@ -137,8 +137,8 @@
                                 var foundTomorrow = 0;
                                 var i;
                                 for (i = 0; i < hourly.time.length; i++) {
-    var hourTime = new Date(hourly.time[i]);
-    var h = hourTime.getHours();
+                                    var hourTime = new Date(hourly.time[i]);
+                                    var h = hourTime.getHours();
     
     // УДАЛЕНО: if (hourTime.getDate() === now.getDate() && h < currentHour) continue;
 
@@ -189,7 +189,6 @@
     }
     if (foundTomorrow >= 4) break;
 }
-
 
                                 detailedHTML += '<div class="forecast-block">' + todayHTML + '</div>';
                                 detailedHTML += '<div class="forecast-block">' + tomorrowHTML + '</div>';

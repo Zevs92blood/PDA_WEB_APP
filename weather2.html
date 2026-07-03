@@ -34,12 +34,12 @@
         </label>
     </div>
     
-    <button onclick="fetchWeather()">Запросить Прогноз (v2.6)</button>
+    <button onclick="fetchWeather()">Запросить Прогноз (v2.6.3)</button>
     
     <div id="result">Ожидание данных...</div>
     <div id="aqi-result"></div>
     
-    <div class="version">Версия: 2.6.2 ()</div>
+    <div class="version">Версия: 2.6.3 ()</div>
 
     <script>
         var LOCATIONS = {
@@ -136,12 +136,23 @@
                                 var tomorrowHTML = '<h4>Прогноз на завтра:</h4>';
                                 var foundTomorrow = 0;
                                 var i;
-                                for (i = 0; i < hourly.time.length; i++) {
-    // Создаем дату как обычно
-    var hourTime = new Date(hourly.time[i]);
+                             // Подготавливаем текстовые маркеры дат для КПК
+var todayStr = now.getFullYear() + '-' + 
+               ('0' + (now.getMonth() + 1)).slice(-2) + '-' + 
+               ('0' + now.getDate()).slice(-2);
+
+var tomorrowDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+var tomorrowStr = tomorrowDate.getFullYear() + '-' + 
+                  ('0' + (tomorrowDate.getMonth() + 1)).slice(-2) + '-' + 
+                  ('0' + tomorrowDate.getDate()).slice(-2);
+
+for (i = 0; i < hourly.time.length; i++) {
+    // Строка времени от API выглядит так: "2026-07-03T06:00"
+    var timeStr = hourly.time[i]; 
     
-    // ВАЖНО: берем час по UTC, чтобы он совпал с массивом данных API!
-    var h = hourTime.getUTCHours(); 
+    // Вырезаем дату (первые 10 символов) и час (символы на позиции 11 и 12)
+    var itemDate = timeStr.substring(0, 10);
+    var h = parseInt(timeStr.substring(11, 13), 10); 
     
     var isKeyHour = false;
     var j;
@@ -159,7 +170,6 @@
         var h_uv = hourly.uv_index[i];
         var dayLabel = '';
         
-        // Метки проставляем строго по UTC часам из API
         if (h === 6) dayLabel = 'Утро (6:00)';
         else if (h === 12) dayLabel = 'День (12:00)';
         else if (h === 18) dayLabel = 'Вечер (18:00)';
@@ -173,16 +183,18 @@
             h_wind + ' м/с, УФ: ' + h_uv +
             '</div>';
 
-        // Для разделения на Сегодня/Завтра тоже используем UTC-день
-        if (hourTime.getUTCDate() === now.getUTCDate()) {
+        // Железобетонное сравнение строк, которое поймет любой древний браузер
+        if (itemDate === todayStr) {
             todayHTML += forecastItem;
-        } else if (hourTime.getUTCDate() === (now.getUTCDate() + 1)) {
+        } else if (itemDate === tomorrowStr) {
             tomorrowHTML += forecastItem;
             foundTomorrow++;
         }
     }
     if (foundTomorrow >= 4) break;
 }
+
+
 
                                 detailedHTML += '<div class="forecast-block">' + todayHTML + '</div>';
                                 detailedHTML += '<div class="forecast-block">' + tomorrowHTML + '</div>';

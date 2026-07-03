@@ -137,47 +137,59 @@
                                 var foundTomorrow = 0;
                                 var i;
                                 for (i = 0; i < hourly.time.length; i++) {
-                                    var hourTime = new Date(hourly.time[i]);
-                                    var h = hourTime.getHours();
-                                    if (hourTime.getDate() === now.getDate() && h < currentHour) continue;
-                                    
-                                    var isKeyHour = false;
-                                    var j;
-                                    for(j = 0; j < keyHours.length; j++){
-                                        if(h === keyHours[j]) {
-                                            isKeyHour = true;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    if (isKeyHour) {
-                                        var h_temp = Math.round(hourly.temperature_2m[i]);
-                                        var h_pop = hourly.precipitation_probability[i];
-                                        var h_wind = Math.round(hourly.wind_speed_10m[i]);
-                                        var h_uv = hourly.uv_index[i];
-                                        var dayLabel = '';
-                                        if (h === 6) dayLabel = 'Утро (6:00)';
-                                        else if (h === 12) dayLabel = 'День (12:00)';
-                                        else if (h === 18) dayLabel = 'Вечер (18:00)';
-                                        else if (h === 0) dayLabel = 'Ночь (0:00)';
-                                        
-                                        var forecastItem = 
-                                            '<div class="hourly-item">' +
-                                            '<strong>' + dayLabel + '</strong>: ' +
-                                            h_temp + '°C, ' +
-                                            h_pop + '% осад., ' +
-                                            h_wind + ' м/с, УФ: ' + h_uv +
-                                            '</div>';
+    var hourTime = new Date(hourly.time[i]);
+    var h = hourTime.getHours();
+    
+    // УДАЛЕНО: if (hourTime.getDate() === now.getDate() && h < currentHour) continue;
 
-                                        if (hourTime.getDate() === now.getDate()) {
-                                            todayHTML += forecastItem;
-                                        } else if (hourTime.getDate() === (now.getDate() + 1)) {
-                                            tomorrowHTML += forecastItem;
-                                            foundTomorrow++;
-                                        }
-                                    }
-                                    if (foundTomorrow >= 4) break;
-                                }
+    var isKeyHour = false;
+    for (var j = 0; j < keyHours.length; j++) {
+        if (h === keyHours[j]) {
+            isKeyHour = true;
+            break;
+        }
+    }
+    
+    if (isKeyHour) {
+        var h_temp = Math.round(hourly.temperature_2m[i]);
+        var h_pop = hourly.precipitation_probability[i];
+        var h_wind = Math.round(hourly.wind_speed_10m[i]);
+        var h_uv = hourly.uv_index[i];
+        
+        var dayLabel = '';
+        if (h === 6) dayLabel = 'Утро (6:00)';
+        else if (h === 12) dayLabel = 'День (12:00)';
+        else if (h === 18) dayLabel = 'Вечер (18:00)';
+        else if (h === 0) dayLabel = 'Ночь (0:00)';
+        
+        // Проверяем, прошло ли уже это время сегодня
+        var isPast = (hourTime.getDate() === now.getDate() && h < currentHour);
+        
+        var forecastItem = 
+            '<div class="hourly-item' + (isPast ? ' past-hour' : '') + '">' +
+            '<strong>' + dayLabel + '</strong>: ' +
+            (isPast ? '<span class="muted">уже прошло</span>' : 
+            h_temp + '°C, ' + h_pop + '% осад., ' + h_wind + ' м/с, УФ: ' + h_uv) +
+            '</div>';
+
+        // Сравниваем даты без риска ошибок в конце месяца
+        var isToday = hourTime.getDate() === now.getDate() && hourTime.getMonth() === now.getMonth();
+        
+        // Создаем объект завтрашней даты для точного сравнения
+        var tomorrow = new Date(now);
+        tomorrow.setDate(now.getDate() + 1);
+        var isTomorrow = hourTime.getDate() === tomorrow.getDate() && hourTime.getMonth() === tomorrow.getMonth();
+
+        if (isToday) {
+            todayHTML += forecastItem;
+        } else if (isTomorrow) {
+            tomorrowHTML += forecastItem;
+            foundTomorrow++;
+        }
+    }
+    if (foundTomorrow >= 4) break;
+}
+
 
                                 detailedHTML += '<div class="forecast-block">' + todayHTML + '</div>';
                                 detailedHTML += '<div class="forecast-block">' + tomorrowHTML + '</div>';
